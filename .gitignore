@@ -1,0 +1,6 @@
+.DS_Store
+node_modules/
+/packages/backend/test-results/
+/packages/backend/playwright-report/
+/packages/backend/blob-report/
+/packages/backend/playwright/.cache/

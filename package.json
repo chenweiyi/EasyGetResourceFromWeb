@@ -1,0 +1,27 @@
+{
+  "name": "crawer-data",
+  "version": "1.0.0",
+  "description": "大知识库项目，爬取想要的信息，并可视化展示",
+  "type": "module",
+  "scripts": {
+    "dev:back": "pnpm --filter=crawler-backend run dev",
+    "build:fe": "pnpm --filter=crawler-frontend run build"
+  },
+  "keywords": [],
+  "license": "ISC",
+  "packageManager": "pnpm@9.15.0",
+  "dependencies": {
+    "chalk": "^5.2.0",
+    "dayjs": "^1.11.7",
+    "husky": "8.0.3",
+    "lodash-es": "^4.17.21"
+  },
+  "devDependencies": {
+    "@types/lodash-es": "^4.17.12",
+    "@types/node": "^22.10.1",
+    "lint-staged": "^15.2.11",
+    "prettier": "^3.4.2",
+    "ts-node": "^10.9.2",
+    "typescript": "5.7.2"
+  }
+}

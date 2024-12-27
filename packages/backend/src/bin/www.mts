@@ -3,62 +3,64 @@
 /**
  * Module dependencies.
  */
-import * as dotenv from 'dotenv'
-import debugLibrary from 'debug'
-import http from 'http'
-import path from 'path'
+import * as dotenv from 'dotenv';
+import debugLibrary from 'debug';
+import http from 'http';
+import { resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-import '../utils/abortControllerPolyfill.mjs'
-import '../utils/fetchPolyfill.mjs'
-import app from '../app.mjs'
+import '../utils/abortControllerPolyfill.mjs';
+import '../utils/fetchPolyfill.mjs';
+import app from '../app.mjs';
 
-const debug = debugLibrary('server')
+const debug = debugLibrary('server');
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const config = dotenv.config({
-  path: path.resolve('..', '..', '.env')
-})
+  path: resolve(__dirname, '../..', '.env'),
+});
 
-debug('config', config)
+debug('config', config);
 
 /**
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.SERVER_PORT || '3000')
+var port = normalizePort(process.env.SERVER_PORT || '3000');
 // app.set('port', port);
 
 /**
  * Create HTTP server.
  */
 
-var server = http.createServer(app.callback())
+var server = http.createServer(app.callback());
 
 /**
  * Listen on provided port, on all network interfaces.
  */
 
-server.listen(port)
-server.on('error', onError)
-server.on('listening', onListening)
+server.listen(port);
+server.on('error', onError);
+server.on('listening', onListening);
 
 /**
  * Normalize a port into a number, string, or false.
  */
 
 function normalizePort(val: string) {
-  var port = parseInt(val, 10)
+  var port = parseInt(val, 10);
 
   if (isNaN(port)) {
     // named pipe
-    return val
+    return val;
   }
 
   if (port >= 0) {
     // port number
-    return port
+    return port;
   }
 
-  return false
+  return false;
 }
 
 /**
@@ -67,21 +69,21 @@ function normalizePort(val: string) {
 
 function onError(error: any) {
   if (error.syscall !== 'listen') {
-    throw error
+    throw error;
   }
 
-  var bind = typeof port === 'string' ? 'Pipe ' + port : 'Port ' + port
+  var bind = typeof port === 'string' ? 'Pipe ' + port : 'Port ' + port;
 
   // handle specific listen errors with friendly messages
   switch (error.code) {
     case 'EACCES':
-      console.error(bind + ' requires elevated privileges')
-      process.exit(1)
+      console.error(bind + ' requires elevated privileges');
+      process.exit(1);
     case 'EADDRINUSE':
-      console.error(bind + ' is already in use')
-      process.exit(1)
+      console.error(bind + ' is already in use');
+      process.exit(1);
     default:
-      throw error
+      throw error;
   }
 }
 
@@ -90,8 +92,8 @@ function onError(error: any) {
  */
 
 function onListening() {
-  var addr = server.address()
-  var bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr?.port
-  debug('Listening on ' + bind)
-  console.log('Listening on ' + bind)
+  var addr = server.address();
+  var bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr?.port;
+  debug('Listening on ' + bind);
+  console.log('Listening on ' + bind);
 }

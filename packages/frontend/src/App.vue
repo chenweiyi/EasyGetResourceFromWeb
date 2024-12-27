@@ -1,85 +1,132 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
+import spider from '@/assets/spider.png';
+import { routes } from '@/router';
+
+type IMenu = {
+  title: string;
+  path: string;
+  name: string;
+  icon: FunctionalComponent;
+};
+
+const route = useRoute();
+const router = useRouter();
+
+const menus = ref<IMenu[]>(
+  routes
+    .filter(r => r.meta?.menu)
+    .map(r => ({
+      title: r.meta!.title ?? '',
+      path: r.path,
+      name: r.name!,
+      icon: r.meta!.icon ?? '',
+    })),
+);
+
+const active = computed(() => {
+  const menu = menus.value.find(m => route.path.startsWith(m.path));
+  if (menu) {
+    return menu.name;
+  }
+  return '';
+});
+
+const clickMenu = (menu: IMenu) => {
+  router.push({ name: menu.name });
+};
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
-
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
-
-      <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-      </nav>
-    </div>
-  </header>
-
-  <RouterView />
+  <div class="common-layout">
+    <el-container>
+      <el-header class="common-header">
+        <div class="w-1200px h-full flex items-center">
+          <div class="h-full flex items-center">
+            <img
+              :src="spider"
+              alt=""
+              class="w-36px h-36px mr-8px transition rotate-20"
+            />
+            <span class="text-18px">Data Platform</span>
+            <span class="separator"></span>
+          </div>
+          <div class="common-menus">
+            <ul class="menus">
+              <li
+                v-for="menu in menus"
+                :key="menu.name"
+                class="menu-item"
+                :class="[menu.name === active ? 'active' : '']"
+                @click="clickMenu(menu)"
+              >
+                <component :is="menu.icon"></component>
+                <span class="ml-8px">{{ menu.title }}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </el-header>
+      <el-main class="flex justify-center">
+        <div class="w-1200px">
+          <RouterView />
+        </div>
+      </el-main>
+    </el-container>
+  </div>
 </template>
 
-<style scoped>
-header {
-  line-height: 1.5;
-  max-height: 100vh;
-}
-
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
-}
-
-nav {
-  width: 100%;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 2rem;
-}
-
-nav a.router-link-exact-active {
-  color: var(--color-text);
-}
-
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
-}
-
-nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
-}
-
-nav a:first-of-type {
-  border: 0;
-}
-
-@media (min-width: 1024px) {
-  header {
+<style scoped lang="less">
+.common-layout {
+  .common-header {
+    background-color: rgb(2, 139, 255);
+    height: 60px;
+    color: #fff;
     display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
+    justify-content: center;
+    align-items: center;
   }
 
-  .logo {
-    margin: 0 2rem 0 0;
+  .separator {
+    width: 1px;
+    height: 20px;
+    background-color: #fff;
+    margin: 0 20px;
   }
+}
 
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
+.menus {
+  list-style: none;
+  display: flex;
+  margin: 0;
+  padding: 0;
+  margin-left: 30px;
+}
+
+.menu-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-right: 60px;
+  padding: 12px 0;
+  cursor: pointer;
+  &:hover {
+    color: #fff;
   }
-
-  nav {
-    text-align: left;
-    margin-left: -1rem;
-    font-size: 1rem;
-
-    padding: 1rem 0;
-    margin-top: 1rem;
+  &.active {
+    color: #07f2aa;
+    &:after {
+      content: '';
+      position: absolute;
+      display: block;
+      width: 20px;
+      height: 4px;
+      border-radius: 2px;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      margin: 0 auto;
+      background-color: #07f2aa;
+    }
   }
 }
 </style>

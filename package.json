@@ -1,11 +1,12 @@
 {
-  "name": "crawer-data",
+  "name": "crawler-data",
   "version": "1.0.0",
   "description": "大知识库项目，爬取想要的信息，并可视化展示",
   "type": "module",
   "scripts": {
     "dev:back": "pnpm --filter=crawler-backend run dev",
-    "build:fe": "pnpm --filter=crawler-frontend run build"
+    "build:fe": "pnpm --filter=crawler-frontend run build",
+    "dev:front": "pnpm --filter=crawler-frontend run dev"
   },
   "keywords": [],
   "license": "ISC",

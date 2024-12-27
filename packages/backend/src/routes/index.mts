@@ -1,7 +1,7 @@
-import RouterEngine from '@koa/router'
+import RouterEngine from '@koa/router';
 
-const router = new RouterEngine()
+const router = new RouterEngine();
 
-router.prefix('/q')
+router.prefix('/q');
 
-export { router }
+export { router };

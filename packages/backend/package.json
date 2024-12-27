@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon ./src/bin/www.mts",
+    "grab": "ts-node ./tests/grab.mts",
     "debug": "cross-env DEBUG=\"server,app,vendor,service:*,controller:*\" nodemon ./src/bin/www.mts",
     "start": "cross-env DEBUG=\"server,app,vendor,service:*,controller:*\" ts-node ./src/bin/www.mts",
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -33,10 +34,13 @@
     "koa-views": "^8.1.0",
     "koa2-cors": "^2.0.6",
     "koa2-history-api-fallback": "^0.1.0",
+    "mysql2": "^3.12.0",
     "node-fetch": "^3.3.0",
-    "pug": "^2.0.3",
+    "pug": "^3.0.3",
     "qs": "^6.11.1",
-    "quick-lru": "^7.0.0"
+    "quick-lru": "^7.0.0",
+    "@playwright/test": "1.48.0",
+    "playwright": "1.48.0"
   },
   "devDependencies": {
     "@types/debug": "^4.1.12",
@@ -48,8 +52,8 @@
     "@types/koa-logger": "^3.1.5",
     "@types/koa-static": "^4.0.4",
     "@types/koa__router": "^12.0.4",
+    "@types/node": "^22.10.1",
     "@types/qs": "^6.9.17",
-    "@playwright/test": "1.48.0",
     "@types/shelljs": "^0.8.15",
     "cross-env": "^7.0.3",
     "nodemon": "^3.1.7",

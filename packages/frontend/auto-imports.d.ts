@@ -7,14 +7,26 @@
 export {}
 declare global {
   const EffectScope: typeof import('vue')['EffectScope']
+  const ElMessage: typeof import('element-plus/es')['ElMessage']
+  const ElMessageBox: typeof import('element-plus/es')['ElMessageBox']
+  const IconHugeiconsTaskEdit02: typeof import('~icons/hugeicons/task-edit02')['default']
+  const IconMaterialSymbolsBarChart4BarsRounded: typeof import('~icons/material-symbols/bar-chart4-bars-rounded')['default']
+  const addNewTask: typeof import('./src/api/task')['addNewTask']
+  const axios: typeof import('./src/api/axios')['default']
   const computed: typeof import('vue')['computed']
   const createApp: typeof import('vue')['createApp']
+  const createRouter: typeof import('vue-router')['createRouter']
+  const createWebHistory: typeof import('vue-router')['createWebHistory']
   const customRef: typeof import('vue')['customRef']
   const defineAsyncComponent: typeof import('vue')['defineAsyncComponent']
   const defineComponent: typeof import('vue')['defineComponent']
   const effectScope: typeof import('vue')['effectScope']
+  const execTaskById: typeof import('./src/api/task')['execTaskById']
   const getCurrentInstance: typeof import('vue')['getCurrentInstance']
   const getCurrentScope: typeof import('vue')['getCurrentScope']
+  const getTaskById: typeof import('./src/api/task')['getTaskById']
+  const getTaskList: typeof import('./src/api/task')['getTaskList']
+  const getTaskRecord: typeof import('./src/api/task')['getTaskRecord']
   const h: typeof import('vue')['h']
   const inject: typeof import('vue')['inject']
   const isProxy: typeof import('vue')['isProxy']
@@ -53,6 +65,7 @@ declare global {
   const toValue: typeof import('vue')['toValue']
   const triggerRef: typeof import('vue')['triggerRef']
   const unref: typeof import('vue')['unref']
+  const updateTaskById: typeof import('./src/api/task')['updateTaskById']
   const useAttrs: typeof import('vue')['useAttrs']
   const useCssModule: typeof import('vue')['useCssModule']
   const useCssVars: typeof import('vue')['useCssVars']
@@ -73,4 +86,13 @@ declare global {
   // @ts-ignore
   export type { Component, ComponentPublicInstance, ComputedRef, DirectiveBinding, ExtractDefaultPropTypes, ExtractPropTypes, ExtractPublicPropTypes, InjectionKey, PropType, Ref, MaybeRef, MaybeRefOrGetter, VNode, WritableComputedRef, FunctionalComponent } from 'vue'
   import('vue')
+  // @ts-ignore
+  export type { RouteRecordRaw } from 'vue-router'
+  import('vue-router')
+  // @ts-ignore
+  export type { FormInstance } from 'element-plus'
+  import('element-plus')
+  // @ts-ignore
+  export type { ITaskType, ITaskData, ITaskWithId, ITaskField, ITaskRecord } from './src/api/task'
+  import('./src/api/task')
 }

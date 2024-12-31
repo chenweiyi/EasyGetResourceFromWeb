@@ -109,11 +109,12 @@ const clickMenu = (menu: IMenu) => {
   margin-right: 60px;
   padding: 12px 0;
   cursor: pointer;
+  color: #eee;
   &:hover {
     color: #fff;
   }
   &.active {
-    color: #07f2aa;
+    color: #fff;
     &:after {
       content: '';
       position: absolute;
@@ -125,7 +126,7 @@ const clickMenu = (menu: IMenu) => {
       left: 0;
       right: 0;
       margin: 0 auto;
-      background-color: #07f2aa;
+      background-color: #fff;
     }
   }
 }

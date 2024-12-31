@@ -1,8 +1,5 @@
-import { createRouter, createWebHistory } from 'vue-router';
-import TaskIcon from '~icons/hugeicons/task-edit-02';
-import DataIcon from '~icons/material-symbols/bar-chart-4-bars-rounded';
-
-const routes = [
+import { type RouteRecordRaw } from 'vue-router';
+const routes: RouteRecordRaw[] = [
   {
     path: '/',
     redirect: '/task',
@@ -15,7 +12,7 @@ const routes = [
     meta: {
       title: '任务',
       menu: true,
-      icon: TaskIcon,
+      icon: IconHugeiconsTaskEdit02,
     },
     children: [
       {
@@ -42,7 +39,7 @@ const routes = [
     meta: {
       title: '数据',
       menu: true,
-      icon: DataIcon,
+      icon: IconMaterialSymbolsBarChart4BarsRounded,
     },
   },
 ];

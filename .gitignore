@@ -4,3 +4,7 @@ node_modules/
 /packages/backend/playwright-report/
 /packages/backend/blob-report/
 /packages/backend/playwright/.cache/
+
+.eslintrc-auto-import.json
+auto-imports.d.ts
+components.d.ts

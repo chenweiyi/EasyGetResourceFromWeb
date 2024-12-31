@@ -1,3 +1,299 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+const props = defineProps<{
+  id?: number;
+}>();
 
-<template>新建任务</template>
+const emit = defineEmits(['close']);
+
+const form = ref<ITaskType>({
+  name: '',
+  url: '',
+  enableProxy: 0,
+  retryNum: undefined,
+  fields: [
+    {
+      key: '',
+      value: '',
+      access: 'innerText',
+      accessArgs: '',
+      type: 'string',
+      unit: '',
+    },
+  ],
+});
+
+const rules = ref({
+  name: [{ required: true, message: '请输入任务名称', trigger: 'blur' }],
+  url: [{ required: true, message: '请输入爬取地址', trigger: 'blur' }],
+  enableProxy: [
+    { required: true, message: '请选择是否开启代理', trigger: 'blur' },
+  ],
+});
+
+const fieldsRules = ref({
+  key: [{ required: true, message: '请输入字段名称', trigger: 'blur' }],
+  value: [{ required: true, message: '请输入字段值', trigger: 'blur' }],
+  type: [{ required: true, message: '请选择字段类型', trigger: 'blur' }],
+  access: [{ required: true, message: '请选择访问方式', trigger: 'change' }],
+  accessArgs: [{ required: true, message: '请选择访问参数', trigger: 'blur' }],
+});
+
+const formRef = ref<FormInstance>();
+const loading = ref(false);
+
+const addFields = () => {
+  form.value.fields.push({
+    key: '',
+    value: '',
+    access: 'innerText',
+    accessArgs: '',
+    type: 'string',
+    unit: '',
+  });
+};
+
+const submit = async () => {
+  if (!formRef.value) return;
+  formRef.value.validate(async (valid, fields) => {
+    console.log('valid:', valid);
+    console.log('fields:', fields);
+    if (valid) {
+      console.log('submit...');
+      try {
+        loading.value = true;
+        if (props.id) {
+          await updateTaskById({
+            id: props.id,
+            name: form.value.name,
+            url: form.value.url,
+            enableProxy: form.value.enableProxy,
+            fields: form.value.fields,
+            retryNum: form.value.retryNum == null ? 2 : +form.value.retryNum,
+          });
+          ElMessage.success('更新成功');
+          emit('close');
+        } else {
+          await addNewTask({
+            name: form.value.name,
+            url: form.value.url,
+            enableProxy: form.value.enableProxy,
+            fields: form.value.fields,
+            retryNum: form.value.retryNum == null ? 2 : +form.value.retryNum,
+          });
+          ElMessage.success('添加成功');
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
+        loading.value = false;
+      }
+    } else {
+      console.log('error submit...');
+    }
+  });
+};
+
+const reset = () => {
+  if (!formRef.value) return;
+  formRef.value.resetFields();
+};
+
+const query = async () => {
+  if (!props.id) return;
+  try {
+    loading.value = true;
+    const task = await getTaskById(props.id);
+    console.log('task:', task);
+    form.value = task[0];
+  } catch (error) {
+    console.error(error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+onMounted(() => {
+  if (props.id) {
+    query();
+  }
+});
+</script>
+
+<template>
+  <div class="flex flex-col" v-loading="loading">
+    <div class="flex justify-end">
+      <el-button type="primary" :disabled="loading" @click="submit">{{
+        props.id ? '更新' : '添加'
+      }}</el-button>
+      <el-button type="danger" :disabled="loading" @click="reset"
+        >重置</el-button
+      >
+    </div>
+    <div class="max-h-600px overflow-y-auto mb-30px mt-12px">
+      <el-form
+        ref="formRef"
+        class="my-form w-full"
+        label-width="120px"
+        :model="form"
+        :rules="rules"
+      >
+        <el-form-item label="任务名称" class="w-400px" prop="name">
+          <el-input v-model="form.name" placeholder="请输入任务名称" />
+        </el-form-item>
+        <el-form-item label="爬取地址" class="w-400px" prop="url">
+          <el-input v-model="form.url" placeholder="请输入爬取地址" />
+        </el-form-item>
+        <el-form-item label="最大重试次数" class="w-400px" prop="retryNum">
+          <el-input
+            v-model="form.retryNum"
+            placeholder="请输入重试次数, 默认为2"
+            type="number"
+          />
+        </el-form-item>
+        <el-form-item label="是否开启代理" class="w-400px" prop="enableProxy">
+          <el-radio-group v-model="form.enableProxy">
+            <el-radio :value="0">否</el-radio>
+            <el-radio :value="1">是</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="字段设置" prop="fields">
+          <el-table class="my-table" :data="form.fields">
+            <el-table-column prop="key" label="字段名称">
+              <template #header>
+                <span class="text-red-500 mr-4px">*</span>
+                <span>字段名称</span>
+              </template>
+              <template #default="scope">
+                <el-form-item
+                  :rules="fieldsRules.key"
+                  :prop="'fields.' + scope.$index + '.key'"
+                >
+                  <el-input
+                    v-model="scope.row.key"
+                    placeholder="请输入字段名称"
+                  />
+                </el-form-item>
+              </template>
+            </el-table-column>
+            <el-table-column prop="type" label="字段类型">
+              <template #header>
+                <span class="text-red-500 mr-4px">*</span>
+                <span>字段类型</span>
+              </template>
+              <template #default="scope">
+                <el-form-item
+                  :rules="fieldsRules.type"
+                  :prop="'fields.' + scope.$index + '.type'"
+                >
+                  <el-select
+                    v-model="scope.row.type"
+                    placeholder="请选择字段类型"
+                  >
+                    <el-option label="数字" value="number"></el-option>
+                    <el-option label="字符串" value="string"></el-option>
+                  </el-select>
+                </el-form-item>
+              </template>
+            </el-table-column>
+            <el-table-column prop="value" label="字段值">
+              <template #header>
+                <span class="text-red-500 mr-4px">*</span>
+                <span>字段值</span>
+              </template>
+              <template #default="scope">
+                <el-form-item
+                  :rules="fieldsRules.value"
+                  :prop="'fields.' + scope.$index + '.value'"
+                >
+                  <el-input
+                    v-model="scope.row.value"
+                    placeholder="请输入字段值"
+                  />
+                </el-form-item>
+              </template>
+            </el-table-column>
+            <el-table-column prop="access" label="字段访问方式">
+              <template #header>
+                <span class="text-red-500 mr-4px">*</span>
+                <span>字段访问方式</span>
+              </template>
+              <template #default="scope">
+                <el-form-item
+                  :rules="fieldsRules.access"
+                  :prop="'fields.' + scope.$index + '.access'"
+                >
+                  <el-select
+                    v-model="scope.row.access"
+                    placeholder="请选择访问方式"
+                  >
+                    <el-option label="innerText" value="innerText"></el-option>
+                    <el-option label="attr" value="attr"></el-option>
+                  </el-select>
+                </el-form-item>
+              </template>
+            </el-table-column>
+            <el-table-column prop="accessArgs" label="访问参数">
+              <template #default="scope">
+                <el-form-item
+                  :rules="
+                    scope.row.access === 'attr' ? fieldsRules.accessArgs : {}
+                  "
+                  :prop="'fields.' + scope.$index + '.accessArgs'"
+                >
+                  <el-input
+                    v-model="scope.row.accessArgs"
+                    placeholder="请输入访问参数"
+                  />
+                </el-form-item>
+              </template>
+            </el-table-column>
+            <el-table-column prop="unit" label="字段单位">
+              <template #default="scope">
+                <el-form-item>
+                  <el-input
+                    v-model="scope.row.unit"
+                    placeholder="请输入字段单位"
+                  />
+                </el-form-item>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="100">
+              <template #default="scope">
+                <el-button
+                  type="danger"
+                  size="small"
+                  @click="form.fields.splice(scope.$index, 1)"
+                >
+                  删除
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+          <el-button
+            class="mt-20px"
+            type="primary"
+            size="small"
+            @click="addFields"
+          >
+            添加字段
+          </el-button>
+        </el-form-item>
+      </el-form>
+    </div>
+  </div>
+</template>
+
+<style lang="less" scoped>
+.my-table {
+  :deep(.el-table__body .cell) {
+    overflow-y: auto;
+    height: 60px;
+    position: relative;
+  }
+
+  :deep(.el-table__body .cell .el-form-item),
+  :deep(.el-table__body .cell .el-button) {
+    margin-top: 12px;
+  }
+}
+</style>

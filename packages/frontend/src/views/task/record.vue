@@ -1,19 +1,7 @@
 <script setup lang="ts">
-type IRecord = {
-  id: number;
-  taskId: number;
-  url: string;
-  startTime: string;
-  endTime: string;
-  status: number;
-  execCount: number;
-  execStatus: number;
-  execTime: number;
-  result: string;
-  proxyOn: number;
-};
+import type { ITaskRecord } from '@/api/task';
 
-const data = ref<IRecord[]>([]);
+const data = ref<ITaskRecord[]>([]);
 
 const getStatus = (status: number) => {
   switch (status) {
@@ -37,39 +25,30 @@ const getStatusType = (status: number) => {
   }
 };
 
-const getExecStatus = (status: number) => {
-  switch (status) {
-    case 1:
-      return '正在执行';
-    case 2:
-      return '完成';
-    case 3:
-      return '等待';
-    case 4:
-      return '正在取消';
-    case 5:
-      return '取消成功';
-    case 6:
-      return '等待取消';
+const seeDetial = (result: string) => {};
+
+const query = async () => {
+  try {
+    const res = await getTaskRecord();
+    console.log('res:', res);
+    data.value = res;
+  } catch (error) {
+    console.error(error);
   }
 };
 
-const getProxyStatus = (proxyOn: number) => {
-  return proxyOn === 1 ? '开启' : '未配置';
-};
-
-const getProxyStatusType = (proxyOn: number) => {
-  return proxyOn === 1 ? 'success' : 'info';
-};
+onMounted(() => {
+  query();
+});
 </script>
 
 <template>
   <el-table :data="data">
-    <el-table-column prop="id" label="Id" />
-    <el-table-column prop="taskId" label="任务Id" />
-    <el-table-column prop="url" label="爬取地址" />
-    <el-table-column prop="startTime" label="开始时间" />
-    <el-table-column prop="endTime" label="结束时间" />
+    <el-table-column prop="id" label="Id" width="70" />
+    <el-table-column prop="name" label="任务名称" />
+    <el-table-column prop="url" label="爬取地址" show-overflow-tooltip />
+    <el-table-column prop="startTime" label="开始时间" width="180" />
+    <el-table-column prop="endTime" label="结束时间" width="180" />
     <el-table-column prop="status" label="状态">
       <template #default="scope">
         <el-tag :type="getStatusType(scope.row.status)">{{
@@ -77,23 +56,17 @@ const getProxyStatusType = (proxyOn: number) => {
         }}</el-tag>
       </template>
     </el-table-column>
-    <el-table-column prop="execCount" label="执行次数" />
-    <el-table-column prop="execStatus" label="执行状态">
+    <el-table-column prop="execNum" label="执行次数" />
+    <el-table-column prop="execTime" label="执行耗时（s）" />
+    <el-table-column prop="result" label="执行结果" show-overflow-tooltip>
       <template #default="scope">
-        <span>{{ getExecStatus(scope.row.execStatus) }}</span>
-      </template>
-    </el-table-column>
-    <el-table-column prop="execTime" label="执行时间" />
-    <el-table-column prop="result" label="执行结果">
-      <template #default="scope">
-        <div>{{ scope.row.result }}</div>
-      </template>
-    </el-table-column>
-    <el-table-column prop="proxyOn" label="是否开启代理">
-      <template #default="scope">
-        <el-tag :type="getProxyStatusType(scope.row.proxyOn)">{{
-          getProxyStatus(scope.row.proxyOn)
-        }}</el-tag>
+        <el-button
+          type="primary"
+          size="small"
+          @click="seeDetial(scope.row.result)"
+        >
+          查看结果
+        </el-button>
       </template>
     </el-table-column>
   </el-table>

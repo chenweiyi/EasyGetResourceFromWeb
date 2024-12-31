@@ -7,6 +7,7 @@ import vueDevTools from 'vite-plugin-vue-devtools';
 import AutoImport from 'unplugin-auto-import/vite';
 import Components from 'unplugin-vue-components/vite';
 import Icons from 'unplugin-icons/vite';
+import IconsResolver from 'unplugin-icons/resolver';
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers';
 import UnoCSS from 'unocss/vite';
 
@@ -19,7 +20,15 @@ export default defineConfig({
     UnoCSS(),
     Icons(),
     AutoImport({
-      resolvers: [ElementPlusResolver()],
+      eslintrc: {
+        enabled: true,
+      },
+      resolvers: [
+        ElementPlusResolver(),
+        IconsResolver({
+          prefix: 'Icon',
+        }),
+      ],
       imports: [
         'vue',
         'vue-router',
@@ -28,15 +37,48 @@ export default defineConfig({
           imports: ['FunctionalComponent'],
           type: true,
         },
+        {
+          from: 'vue-router',
+          imports: ['createRouter', 'createWebHistory'],
+        },
+        {
+          from: 'vue-router',
+          imports: ['RouteRecordRaw'],
+          type: true,
+        },
+        {
+          from: 'element-plus',
+          imports: ['FormInstance'],
+          type: true,
+        },
       ],
+      dirs: ['./src/api'],
     }),
     Components({
-      resolvers: [ElementPlusResolver()],
+      resolvers: [
+        IconsResolver(),
+        ElementPlusResolver({
+          importStyle: 'css',
+        }),
+      ],
     }),
   ],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
+  server: {
+    host: '0.0.0.0',
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+    },
+    proxy: {
+      '/q': {
+        target: 'http://127.0.0.1:3010',
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/q/, '/q'),
+      },
     },
   },
 });

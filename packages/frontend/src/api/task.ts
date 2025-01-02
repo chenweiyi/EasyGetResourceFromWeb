@@ -24,8 +24,9 @@ export type ITaskField = {
   value: string;
   access: 'innerText' | 'attr';
   accessArgs?: string;
-  type: number | string;
+  type: 'number' | 'string' | 'list';
   unit?: string;
+  code?: string;
 };
 
 export type ITaskRecord = {

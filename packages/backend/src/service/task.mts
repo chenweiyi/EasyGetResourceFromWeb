@@ -2,7 +2,7 @@ import { PoolConnection, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import { getPool } from '../utils/mysql.mjs';
 import debugLibrary from 'debug';
 import dayjs from 'dayjs';
-import { crawler, type ICrawlerField } from '../crawler/index.mjs';
+import { crawler } from '../crawler/index.mjs';
 
 const debug = debugLibrary('task:service');
 
@@ -21,8 +21,11 @@ export type ITaskWithId = ITaskType & {
 export type ITaskField = {
   key: string;
   value: string;
-  type: number | string;
+  type: 'number' | 'string' | 'list';
   unit?: string;
+  access: 'innerText' | 'attr';
+  accessArgs?: string;
+  code?: string;
 };
 
 export const getTaskRecord = async () => {
@@ -175,25 +178,15 @@ export const execTaskById = async (id: number) => {
     conn.release();
     throw new Error('任务不存在或已删除');
   }
-  const d = {
-    status: 3,
-  };
 
-  debug('d:', d);
-
-  const res = await conn.query<ResultSetHeader>(
-    'UPDATE task SET ? WHERE id = ?',
-    [d, id],
-  );
-  if (res[0].affectedRows === 0) {
-    throw new Error('更新任务失败');
-  }
+  // 更新任务状态为正在执行
+  await modifyTaskStatus(id, 3);
 
   // 执行任务
   const startTime = dayjs();
   const task = rows[0];
   const { url, fields, enableProxy } = task;
-  let result: ICrawlerField[] = [];
+  let result: ITaskField[] = [];
   let isError = false;
   let retryNum = 0;
   try {

@@ -1,10 +1,19 @@
 <script setup lang="ts">
-const props = defineProps<{
-  result: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    result: string;
+    type: 'js' | 'json';
+  }>(),
+  {
+    type: 'json',
+  },
+);
 
 const data = computed(() => {
   try {
+    if (props.type === 'js') {
+      return props.result;
+    }
     const res = JSON.stringify(JSON.parse(props.result), null, 2);
     console.log(res);
     return res;

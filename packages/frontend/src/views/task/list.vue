@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import TaskNew from '@/views/task/new.vue';
+import JsonViewer from '@/components/JsonViewer.vue';
 
 type ITaskDataWithLoading = ITaskData & {
   loading: boolean;
@@ -44,6 +45,16 @@ const deleteTask = (row: ITaskDataWithLoading) => {
     .catch(() => {});
 };
 
+const seeCode = (code?: string) => {
+  if (!code) return;
+  ElMessageBox({
+    title: '查看代码',
+    message: h(JsonViewer, { result: code, type: 'js' }),
+    showConfirmButton: false,
+    customClass: 'json-viewer-box',
+  });
+};
+
 const query = async () => {
   try {
     loading.value = true;
@@ -75,8 +86,8 @@ onMounted(() => {
     <el-table :data="taskData">
       <el-table-column type="expand">
         <template #default="scope">
-          <div class="px-20px py-10px">
-            <el-form>
+          <div class="px-20px py-10px bg-slate-50">
+            <el-form label-width="106px">
               <el-form-item label="创建时间">
                 {{ scope.row.createTime }}
               </el-form-item>
@@ -85,12 +96,37 @@ onMounted(() => {
               </el-form-item>
               <el-form-item label="字段设置">
                 <el-table :data="scope.row.fields">
-                  <el-table-column prop="key" label="字段名称" />
+                  <el-table-column
+                    prop="key"
+                    label="字段名称"
+                    show-overflow-tooltip
+                  />
                   <el-table-column prop="type" label="字段类型" />
-                  <el-table-column prop="value" label="字段值" />
-                  <el-table-column prop="access" label="字段访问方式" />
-                  <el-table-column prop="accessArgs" label="访问参数" />
                   <el-table-column prop="unit" label="字段单位" />
+                  <el-table-column
+                    prop="value"
+                    label="字段值"
+                    show-overflow-tooltip
+                  />
+                  <el-table-column prop="access" label="字段访问方式" />
+                  <el-table-column
+                    prop="accessArgs"
+                    label="访问参数"
+                    show-overflow-tooltip
+                  />
+                  <el-table-column prop="code" label="代码实现">
+                    <template #default="scope">
+                      <el-button
+                        type="primary"
+                        size="small"
+                        v-if="scope.row.code"
+                        @click="seeCode(scope.row.code)"
+                      >
+                        查看代码
+                      </el-button>
+                      <span v-else> - </span>
+                    </template>
+                  </el-table-column>
                 </el-table>
               </el-form-item>
             </el-form>

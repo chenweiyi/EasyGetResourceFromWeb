@@ -1,28 +1,21 @@
 import { chromium } from 'playwright';
 import 'dotenv/config';
 import debugLibrary from 'debug';
+import { type ITaskField } from '../service/task.mjs';
+import * as cheerio from 'cheerio';
 
 const debug = debugLibrary('crawler');
-
-export type ICrawlerField = {
-  key: string;
-  value: string;
-  type: number | string;
-  access: 'innerText' | 'attr';
-  accessArgs?: string;
-  unit?: string;
-};
 
 type ICrawlerOptions = {
   url: string;
   useProxy: number;
-  fields: ICrawlerField[];
+  fields: ITaskField[];
 };
 
 const crawler = async (crawlerOptions: ICrawlerOptions) => {
   debug('crawlerOptions:', crawlerOptions);
   const { url, useProxy, fields } = crawlerOptions;
-  const result: ICrawlerField[] = [];
+  const result: ITaskField[] = [];
   const browser = await chromium.launch({ headless: false });
   let page;
 
@@ -43,16 +36,23 @@ const crawler = async (crawlerOptions: ICrawlerOptions) => {
   await page.goto(url);
   for (let i = 0; i < fields.length; i++) {
     const field = fields[i];
-    const { value, access, accessArgs } = field;
-    const locator = await page.locator(value);
+    const { value, access, accessArgs, code } = field;
     let val: string = '';
-    if (access === 'attr') {
-      if (!accessArgs) {
-        throw new Error('当 access 为 attr 时, accessArgs 不能为空');
+    if (!code) {
+      const locator = await page.locator(value);
+      if (access === 'attr') {
+        if (!accessArgs) {
+          throw new Error('当 access 为 attr 时, accessArgs 不能为空');
+        }
+        val = await locator.getAttribute(accessArgs);
+      } else if (access === 'innerText') {
+        val = await locator.innerText();
       }
-      val = await locator.getAttribute(accessArgs);
-    } else if (access === 'innerText') {
-      val = await locator.innerText();
+    } else {
+      const content = await page.content();
+      const $ = cheerio.load(content);
+      const func = new Function('$', code)();
+      val = func($);
     }
     result.push({
       ...field,

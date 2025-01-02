@@ -33,8 +33,6 @@ export default class TaskController {
     }
   }
 
-  public static async postAddTaskRecord(ctx: Koa.Context) {}
-
   public static async getTaskList(ctx: Koa.Context) {
     try {
       const res = await queryTaskList();

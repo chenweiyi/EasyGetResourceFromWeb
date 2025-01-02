@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ITaskRecord } from '@/api/task';
+import JsonViewer from '@/components/JsonViewer.vue';
 
 const data = ref<ITaskRecord[]>([]);
 
@@ -25,7 +26,14 @@ const getStatusType = (status: number) => {
   }
 };
 
-const seeDetial = (result: string) => {};
+const seeDetial = (result: string) => {
+  ElMessageBox({
+    title: '查看结果',
+    message: h(JsonViewer, { result }),
+    showConfirmButton: false,
+    customClass: 'json-viewer-box',
+  });
+};
 
 const query = async () => {
   try {
@@ -71,3 +79,9 @@ onMounted(() => {
     </el-table-column>
   </el-table>
 </template>
+
+<style lang="less">
+.el-message-box.json-viewer-box {
+  --el-messagebox-width: 600px;
+}
+</style>

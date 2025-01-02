@@ -32,7 +32,8 @@ export const getTaskRecord = async () => {
       a.id, a.task_id, a.start_time, a.end_time, a.status, a.exec_time, a.exec_num, a.result, 
       b.name, b.url, b.enable_proxy
     FROM record AS a LEFT JOIN task AS b 
-    ON a.task_id = b.id AND b.status != 0`,
+    ON a.task_id = b.id AND b.status != 0
+    ORDER BY a.end_time DESC`,
   );
   return rows.map(row => ({
     id: row.id,
@@ -147,19 +148,19 @@ export const updateTaskById = async (data: ITaskWithId) => {
   if (res[0].affectedRows === 0) {
     throw new Error('更新任务失败');
   }
-  return res[0].affectedRows;
+  return res[0].insertId;
 };
 
 export const modifyTaskStatus = async (id: number, status: number) => {
   const pool = getPool();
-  const [rows] = await pool.query<RowDataPacket[]>(
+  const [rows] = await pool.query<ResultSetHeader>(
     'UPDATE task SET status = ? WHERE id = ?',
     [status, id],
   );
-  if (rows[0].affectedRows === 0) {
+  if (rows.affectedRows === 0) {
     throw new Error('修改任务状态失败');
   }
-  return rows[0].insertId;
+  return rows.insertId;
 };
 
 export const execTaskById = async (id: number) => {

@@ -52,7 +52,7 @@ export default defineConfig({
           type: true,
         },
       ],
-      dirs: ['./src/api'],
+      dirs: ['./src/api', './src/components'],
     }),
     Components({
       resolvers: [
@@ -61,6 +61,7 @@ export default defineConfig({
           importStyle: 'css',
         }),
       ],
+      globs: ['./src/components/**/*.vue'],
     }),
   ],
   resolve: {

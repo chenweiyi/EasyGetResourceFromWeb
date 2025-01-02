@@ -40,6 +40,7 @@ declare module 'vue' {
     IEpVideoPause: typeof import('~icons/ep/video-pause')['default']
     IEpVideoPlay: typeof import('~icons/ep/video-play')['default']
     IEpWarningFilled: typeof import('~icons/ep/warning-filled')['default']
+    JsonViewer: typeof import('./src/components/JsonViewer.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     TheWelcome: typeof import('./src/components/TheWelcome.vue')['default']

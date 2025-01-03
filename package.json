@@ -6,7 +6,8 @@
   "scripts": {
     "dev:back": "pnpm --filter=crawler-backend run dev",
     "build:fe": "pnpm --filter=crawler-frontend run build",
-    "dev:front": "pnpm --filter=crawler-frontend run dev"
+    "dev:front": "pnpm --filter=crawler-frontend run dev",
+    "debug:back": "pnpm --filter=crawler-backend run debug"
   },
   "keywords": [],
   "license": "ISC",

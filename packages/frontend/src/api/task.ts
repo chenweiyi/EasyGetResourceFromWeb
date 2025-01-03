@@ -5,6 +5,7 @@ export type ITaskType = {
   url: string;
   enableProxy: number;
   fields: Array<ITaskField>;
+  descr?: string;
   retryNum?: number | string;
 };
 
@@ -60,6 +61,26 @@ export const updateTaskById: (data: ITaskWithId) => Promise<null> = data => {
     url: '/task/update',
     method: 'post',
     data,
+  });
+};
+
+/**
+ * 删除任务
+ */
+export const deleteTaskById: (id: number | string) => Promise<null> = id => {
+  return axios({
+    url: `/task/delete/${id}`,
+    method: 'post',
+  });
+};
+
+/**
+ * copy任务
+ */
+export const copyTaskById: (id: number | string) => Promise<null> = id => {
+  return axios({
+    url: `/task/copy/${id}`,
+    method: 'post',
   });
 };
 

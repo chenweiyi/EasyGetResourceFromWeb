@@ -12,6 +12,7 @@ import path from 'path';
 import conditional from './utils/koa-conditional-get.mjs';
 
 import { router as task } from './routes/task.mjs';
+import { router as monitor } from './routes/monitor.mjs';
 
 const debug = debugLibrary('app');
 
@@ -74,6 +75,7 @@ app.use(
 
 // routes
 app.use(task.routes()).use(task.allowedMethods());
+app.use(monitor.routes()).use(monitor.allowedMethods());
 
 // error-handling
 app.on('error', (err, ctx) => {

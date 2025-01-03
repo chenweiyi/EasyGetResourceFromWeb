@@ -53,7 +53,7 @@ onMounted(() => {
 <template>
   <el-table :data="data">
     <el-table-column prop="id" label="Id" width="70" />
-    <el-table-column prop="name" label="所属任务" show-overflow-tooltip />
+    <el-table-column prop="name" label="任务名称" />
     <el-table-column prop="url" label="爬取地址" show-overflow-tooltip />
     <el-table-column prop="startTime" label="开始时间" width="180" />
     <el-table-column prop="endTime" label="结束时间" width="180" />

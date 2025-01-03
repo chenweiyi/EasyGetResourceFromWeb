@@ -11,6 +11,7 @@ export type ITaskType = {
   url: string;
   enableProxy: number;
   retryNum: number;
+  descr?: string;
   fields: Array<ITaskField>;
 };
 
@@ -26,6 +27,18 @@ export type ITaskField = {
   access: 'innerText' | 'attr';
   accessArgs?: string;
   code?: string;
+};
+
+export const modifyTaskStatus = async (id: number, status: number) => {
+  const pool = getPool();
+  const [rows] = await pool.query<ResultSetHeader>(
+    'UPDATE task SET status = ? WHERE id = ?',
+    [status, id],
+  );
+  if (rows.affectedRows === 0) {
+    throw new Error('修改任务状态失败');
+  }
+  return rows.insertId;
 };
 
 export const getTaskRecord = async () => {
@@ -72,6 +85,7 @@ export const addNewTask = async (data: ITaskType) => {
     url: data.url,
     enable_proxy: data.enableProxy,
     status: 1,
+    descr: data.descr || '',
     fields: JSON.stringify(data.fields),
     create_time: time,
     update_time: time,
@@ -84,6 +98,7 @@ export const addNewTask = async (data: ITaskType) => {
     conn.release();
     throw new Error('添加任务失败');
   }
+  conn.release();
   return res[0].insertId;
 };
 
@@ -135,6 +150,7 @@ export const updateTaskById = async (data: ITaskWithId) => {
   }
   const d = {
     name: data.name,
+    descr: data.descr || '',
     url: data.url,
     enable_proxy: data.enableProxy,
     retry_num: data.retryNum,
@@ -154,16 +170,44 @@ export const updateTaskById = async (data: ITaskWithId) => {
   return res[0].insertId;
 };
 
-export const modifyTaskStatus = async (id: number, status: number) => {
+export const deleteTaskById = async (id: number) => {
+  return await modifyTaskStatus(id, 0);
+};
+
+export const copyTaskById = async (id: number) => {
+  let conn: PoolConnection | null = null;
   const pool = getPool();
-  const [rows] = await pool.query<ResultSetHeader>(
-    'UPDATE task SET status = ? WHERE id = ?',
-    [status, id],
+  conn = await pool.getConnection();
+  const [rows] = await conn.query<RowDataPacket[]>(
+    'SELECT * FROM task WHERE id = ?',
+    [id],
   );
-  if (rows.affectedRows === 0) {
-    throw new Error('修改任务状态失败');
+  if (rows.length === 0) {
+    conn.release();
+    throw new Error('任务不存在或已删除');
   }
-  return rows.insertId;
+
+  const time = dayjs().format('YYYY-MM-DD HH:mm:ss');
+  const d = {
+    name: rows[0].name + '_copy',
+    url: rows[0].url,
+    enable_proxy: rows[0].enable_proxy,
+    status: 1,
+    retry_num: rows[0].retry_num,
+    fields: JSON.stringify(JSON.parse(rows[0].fields)),
+    create_time: time,
+    update_time: time,
+  };
+
+  debug('d:', d);
+
+  const res = await conn.query<ResultSetHeader>('INSERT INTO task SET ?', d);
+  if (res[0].affectedRows === 0) {
+    conn.release();
+    throw new Error('添加任务失败');
+  }
+  conn.release();
+  return res[0].insertId;
 };
 
 export const execTaskById = async (id: number) => {
@@ -221,10 +265,11 @@ export const execTaskById = async (id: number) => {
   debug('res2:', res2);
 
   if (res2[0].affectedRows === 0) {
+    conn.release();
     throw new Error('插入任务记录失败');
   }
 
+  conn.release();
   await modifyTaskStatus(id, 1);
-
   return res2[0].insertId;
 };

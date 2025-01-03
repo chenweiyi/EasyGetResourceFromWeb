@@ -5,6 +5,34 @@ const routes: RouteRecordRaw[] = [
     redirect: '/task',
   },
   {
+    path: '/monitor',
+    name: 'monitor',
+    redirect: '/monitor/new',
+    component: () => import('../views/Monitor.vue'),
+    meta: {
+      title: '监控',
+      menu: true,
+      icon: IconEpMonitor,
+    },
+    children: [
+      {
+        path: 'record',
+        name: 'monitor-record',
+        component: () => import('../views/monitor/record.vue'),
+      },
+      {
+        path: 'list',
+        name: 'monitor-list',
+        component: () => import('../views/monitor/list.vue'),
+      },
+      {
+        path: 'new',
+        name: 'monitor-new',
+        component: () => import('../views/monitor/new.vue'),
+      },
+    ],
+  },
+  {
     path: '/task',
     name: 'task',
     redirect: '/task/record',

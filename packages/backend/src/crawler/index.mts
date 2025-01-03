@@ -16,7 +16,9 @@ const crawler = async (crawlerOptions: ICrawlerOptions) => {
   debug('crawlerOptions:', crawlerOptions);
   const { url, useProxy, fields } = crawlerOptions;
   const result: ITaskField[] = [];
-  const browser = await chromium.launch({ headless: false });
+  const browser = await chromium.launch({
+    headless: process.env.HEADLESS === 'true',
+  });
   let page;
 
   if (useProxy && !process.env.PROXY_URL) {

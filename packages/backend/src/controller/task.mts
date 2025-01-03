@@ -1,6 +1,8 @@
 import Koa from 'koa';
 import {
   addNewTask,
+  copyTaskById,
+  deleteTaskById,
   execTaskById,
   getTaskById,
   getTaskRecord,
@@ -98,14 +100,9 @@ export default class TaskController {
     const body: ITaskWithId = ctx.request.body as ITaskWithId;
     debug('body:', body);
     try {
-      const { id, name, url, enableProxy, fields, retryNum } = body;
       const res = await updateTaskById({
-        id: +id,
-        name,
-        url,
-        enableProxy,
-        fields,
-        retryNum,
+        ...body,
+        id: +body.id,
       });
       debug('res:', res);
       ctx.status = 200;
@@ -113,6 +110,44 @@ export default class TaskController {
         code: 0,
         msg: 'success',
         data: res,
+      };
+    } catch (error) {
+      ctx.status = 200;
+      ctx.body = {
+        code: 500,
+        msg: error.message,
+      };
+    }
+  }
+
+  public static async deleteTaskById(ctx: Koa.Context) {
+    const id = ctx.params.id;
+    debug('id:', id);
+    try {
+      await deleteTaskById(+id);
+      ctx.status = 200;
+      ctx.body = {
+        code: 0,
+        msg: 'success',
+      };
+    } catch (error) {
+      ctx.status = 200;
+      ctx.body = {
+        code: 500,
+        msg: error.message,
+      };
+    }
+  }
+
+  public static async copyTaskById(ctx: Koa.Context) {
+    const id = ctx.params.id;
+    debug('id:', id);
+    try {
+      await copyTaskById(+id);
+      ctx.status = 200;
+      ctx.body = {
+        code: 0,
+        msg: 'success',
       };
     } catch (error) {
       ctx.status = 200;

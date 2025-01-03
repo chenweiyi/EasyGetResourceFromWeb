@@ -35,13 +35,26 @@ const editTask = (row: ITaskDataWithLoading) => {
   visible.value = true;
 };
 
+const copyTask = async (row: ITaskDataWithLoading) => {
+  try {
+    await copyTaskById(row.id);
+    await query();
+  } catch (error) {
+    console.error(error);
+  }
+};
+
 const deleteTask = (row: ITaskDataWithLoading) => {
-  ElMessageBox.confirm(`确认删除Task[${row.id}]吗？`, '提示', {
+  ElMessageBox.confirm(`确认删除任务「${row.name}」吗？`, '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning',
   })
-    .then(() => {})
+    .then(async () => {
+      console.log('delete');
+      await deleteTaskById(row.id);
+      query();
+    })
     .catch(() => {});
 };
 
@@ -147,7 +160,7 @@ onMounted(() => {
             v-if="scope.row.status === 3"
             placement="top"
           >
-            <i-ep-video-play class="text-green" />
+            <i-ep-video-play class="text-blue" />
           </el-tooltip>
           <el-tooltip
             content="暂停中"
@@ -186,7 +199,7 @@ onMounted(() => {
         </template>
       </el-table-column>
       <el-table-column prop="updateTime" label="更新时间" width="180" />
-      <el-table-column label="操作" width="220">
+      <el-table-column label="操作" width="300">
         <template #default="scope">
           <el-button
             type="success"
@@ -199,6 +212,9 @@ onMounted(() => {
           </el-button>
           <el-button type="primary" size="small" @click="editTask(scope.row)">
             编辑
+          </el-button>
+          <el-button type="primary" size="small" @click="copyTask(scope.row)">
+            复制
           </el-button>
           <el-button type="danger" size="small" @click="deleteTask(scope.row)">
             删除

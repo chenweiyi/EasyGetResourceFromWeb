@@ -9,21 +9,28 @@ declare global {
   const EffectScope: typeof import('vue')['EffectScope']
   const ElMessage: typeof import('element-plus/es')['ElMessage']
   const ElMessageBox: typeof import('element-plus/es')['ElMessageBox']
+  const IconEpMonitor: typeof import('~icons/ep/monitor')['default']
   const IconHugeiconsTaskEdit02: typeof import('~icons/hugeicons/task-edit02')['default']
   const IconMaterialSymbolsBarChart4BarsRounded: typeof import('~icons/material-symbols/bar-chart4-bars-rounded')['default']
+  const addNewMonitor: typeof import('./src/api/monitor')['addNewMonitor']
   const addNewTask: typeof import('./src/api/task')['addNewTask']
   const axios: typeof import('./src/api/axios')['default']
   const computed: typeof import('vue')['computed']
+  const copyTaskById: typeof import('./src/api/task')['copyTaskById']
   const createApp: typeof import('vue')['createApp']
   const createRouter: typeof import('vue-router')['createRouter']
   const createWebHistory: typeof import('vue-router')['createWebHistory']
   const customRef: typeof import('vue')['customRef']
   const defineAsyncComponent: typeof import('vue')['defineAsyncComponent']
   const defineComponent: typeof import('vue')['defineComponent']
+  const deleteMonitorById: typeof import('./src/api/monitor')['deleteMonitorById']
+  const deleteTaskById: typeof import('./src/api/task')['deleteTaskById']
   const effectScope: typeof import('vue')['effectScope']
   const execTaskById: typeof import('./src/api/task')['execTaskById']
   const getCurrentInstance: typeof import('vue')['getCurrentInstance']
   const getCurrentScope: typeof import('vue')['getCurrentScope']
+  const getMonitorById: typeof import('./src/api/monitor')['getMonitorById']
+  const getMonitorList: typeof import('./src/api/monitor')['getMonitorList']
   const getTaskById: typeof import('./src/api/task')['getTaskById']
   const getTaskList: typeof import('./src/api/task')['getTaskList']
   const getTaskRecord: typeof import('./src/api/task')['getTaskRecord']
@@ -65,6 +72,7 @@ declare global {
   const toValue: typeof import('vue')['toValue']
   const triggerRef: typeof import('vue')['triggerRef']
   const unref: typeof import('vue')['unref']
+  const updateMonitorById: typeof import('./src/api/monitor')['updateMonitorById']
   const updateTaskById: typeof import('./src/api/task')['updateTaskById']
   const useAttrs: typeof import('vue')['useAttrs']
   const useCssModule: typeof import('vue')['useCssModule']
@@ -92,6 +100,9 @@ declare global {
   // @ts-ignore
   export type { FormInstance } from 'element-plus'
   import('element-plus')
+  // @ts-ignore
+  export type { IMonitorType, IMonitorWithId, IMonitorData } from './src/api/monitor'
+  import('./src/api/monitor')
   // @ts-ignore
   export type { ITaskType, ITaskData, ITaskWithId, ITaskField, ITaskRecord } from './src/api/task'
   import('./src/api/task')

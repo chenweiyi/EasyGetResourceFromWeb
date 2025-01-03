@@ -2,7 +2,7 @@
 const props = withDefaults(
   defineProps<{
     result: string;
-    type: 'js' | 'json';
+    type?: 'js' | 'json';
   }>(),
   {
     type: 'json',

@@ -10,6 +10,7 @@ const form = ref<ITaskType>({
   url: '',
   enableProxy: 0,
   retryNum: undefined,
+  descr: '',
   fields: [
     {
       key: '',
@@ -77,6 +78,7 @@ const submit = async () => {
             url: form.value.url,
             enableProxy: form.value.enableProxy,
             fields: form.value.fields,
+            descr: form.value.descr,
             retryNum: form.value.retryNum == null ? 2 : +form.value.retryNum,
           });
           ElMessage.success('更新成功');
@@ -87,6 +89,7 @@ const submit = async () => {
             url: form.value.url,
             enableProxy: form.value.enableProxy,
             fields: form.value.fields,
+            descr: form.value.descr,
             retryNum: form.value.retryNum == null ? 2 : +form.value.retryNum,
           });
           ElMessage.success('添加成功');
@@ -148,6 +151,9 @@ onMounted(() => {
       >
         <el-form-item label="任务名称" class="w-400px" prop="name">
           <el-input v-model="form.name" placeholder="请输入任务名称" />
+        </el-form-item>
+        <el-form-item label="任务描述" class="w-400px" prop="descr">
+          <el-input v-model="form.descr" placeholder="请输入任务描述" />
         </el-form-item>
         <el-form-item label="爬取地址" class="w-400px" prop="url">
           <el-input v-model="form.url" placeholder="请输入爬取地址" />

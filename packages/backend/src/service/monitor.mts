@@ -4,7 +4,7 @@ import debugLibrary from 'debug';
 import dayjs from 'dayjs';
 import { crawler } from '../crawler/index.mjs';
 
-const debug = debugLibrary('task:service');
+const debug = debugLibrary('monitor:service');
 
 export type IMonitorType = {
   name: string;
@@ -47,7 +47,7 @@ export const addNewMonitor = async (data: IMonitorType) => {
   const d = {
     name: data.name,
     descr: data.descr,
-    task_ids: data.taskIds.join(','),
+    // task_ids: data.taskIds.join(','),
     cron_time: data.cronTime,
     task_flow: data.taskFlow,
     status: 1,
@@ -57,13 +57,45 @@ export const addNewMonitor = async (data: IMonitorType) => {
 
   debug('d:', d);
 
-  const res = await conn.query<ResultSetHeader>('INSERT INTO monitor SET ?', d);
-  if (res[0].affectedRows === 0) {
+  try {
+    await conn.beginTransaction();
+    const res = await conn.query<ResultSetHeader>(
+      'INSERT INTO monitor SET ?',
+      d,
+    );
+    if (res[0].affectedRows === 0) {
+      throw new Error('添加监控单失败');
+    }
+
+    const mt = data.taskIds.map(id => {
+      return {
+        monitor_id: res[0].insertId,
+        task_id: id,
+      };
+    });
+
+    debug('mt:', mt);
+
+    const res2 = await conn.query<ResultSetHeader>(
+      'INSERT INTO monitor_task SET ?',
+      mt,
+    );
+    debug('affectedRows:', res2[0].affectedRows);
+
+    if (res2[0].affectedRows !== data.taskIds.length) {
+      throw new Error('添加监控任务关联表失败');
+    }
+
+    await conn.commit();
+
+    debug('insertId:', res[0].insertId);
+    return res[0].insertId;
+  } catch (error) {
+    await conn.rollback();
+    throw error;
+  } finally {
     conn.release();
-    throw new Error('添加监控单失败');
   }
-  conn.release();
-  return res[0].insertId;
 };
 
 export const updateMonitorById = async (data: IMonitorWithId) => {
@@ -118,13 +150,35 @@ export const getMonitorById = async (id: number) => {
 export const queryMonitorList = async () => {
   const pool = getPool();
   const [rows] = await pool.query<RowDataPacket[]>(
-    'SELECT * FROM monitor WHERE status != 0 ORDER BY create_time DESC',
+    `SELECT 
+      m.id, 
+      m.name, 
+      m.descr, 
+      m.cron_time, 
+      m.status, 
+      m.task_flow, 
+      m.create_time, 
+      m.update_time,
+      GROUP_CONCAT(t.id) as task_ids,
+      GROUP_CONCAT(t.name) as task_names
+    FROM monitor as m 
+    LEFT JOIN 
+      monitor_task as mt ON m.id = mt.monitor_id
+    LEFT JOIN
+      task as t ON mt.task_id = t.id
+    WHERE 
+      m.status != 0 
+    GROUP BY 
+      m.id
+    ORDER BY m.create_time DESC
+  `,
   );
   return rows.map(r => ({
     id: r.id,
     name: r.name,
     descr: r.descr,
     taskIds: r.task_ids.split(','),
+    taskNames: r.task_names.split(','),
     cronTime: r.cron_time,
     status: r.status,
     taskFlow: r.task_flow,

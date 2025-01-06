@@ -9,7 +9,7 @@ const form = ref<IMonitorType>({
   name: '',
   descr: '',
   taskIds: [],
-  taskFlow: '[]',
+  taskFlow: '',
   cronTime: '',
 });
 
@@ -17,6 +17,7 @@ const rules = ref({
   name: [{ required: true, message: '请输入监控单名称', trigger: 'blur' }],
   taskIds: [{ required: true, message: '请选择任务', trigger: 'change' }],
   cronTime: [{ required: true, message: '请选择执行时间', trigger: 'blur' }],
+  taskFlow: [{ required: true, message: '请输入任务流程', trigger: 'blur' }],
 });
 
 const formRef = ref<FormInstance>();
@@ -47,7 +48,7 @@ const submit = async () => {
             name: form.value.name,
             descr: form.value.descr,
             taskIds: form.value.taskIds,
-            taskFlow: JSON.stringify(form.value.taskIds),
+            taskFlow: form.value.taskFlow,
             cronTime: form.value.cronTime,
           });
           ElMessage.success('更新成功');
@@ -57,7 +58,7 @@ const submit = async () => {
             name: form.value.name,
             descr: form.value.descr,
             taskIds: form.value.taskIds,
-            taskFlow: JSON.stringify(form.value.taskIds),
+            taskFlow: form.value.taskFlow,
             cronTime: form.value.cronTime,
           });
           ElMessage.success('添加成功');
@@ -72,6 +73,8 @@ const submit = async () => {
     }
   });
 };
+
+const editTaskFlow = () => {};
 
 const reset = () => {
   if (!formRef.value) return;
@@ -142,10 +145,19 @@ onMounted(() => {
             <el-option
               v-for="item in tasks"
               :key="item.id"
-              :label="item.name"
+              :label="`${item.name} [${item.id}]`"
               :value="item.id"
-            />
+            >
+              <span class="mr-8px">{{ item.id }}</span>
+              <span>{{ item.name }}</span>
+            </el-option>
           </el-select>
+        </el-form-item>
+        <el-form-item label="任务流程" class="w-700px" prop="taskFlow">
+          <el-input
+            v-model="form.taskFlow"
+            placeholder="[1,2,3]表示任务1,2,3串行执行；[1,[2,3],4]表示任务1,[2,3],4串行执行，任务2,3并行执行"
+          />
         </el-form-item>
         <el-form-item label="执行时间" class="w-400px" prop="cronTime">
           <el-input v-model="form.cronTime" placeholder="秒 分 时 日 月 周" />

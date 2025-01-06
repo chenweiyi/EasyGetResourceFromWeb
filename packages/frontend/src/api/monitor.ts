@@ -13,6 +13,7 @@ export type IMonitorWithId = IMonitorType & {
 export type IMonitorData = IMonitorType & {
   id: number;
   status: number;
+  taskNames: string[];
   createTime: string;
   updateTime: string;
 };

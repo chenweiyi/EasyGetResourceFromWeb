@@ -94,7 +94,17 @@ onMounted(() => {
         </template>
       </el-table-column>
       <el-table-column prop="name" label="监控单名称" show-overflow-tooltip />
-      <el-table-column prop="taskIds" label="包含任务" show-overflow-tooltip />
+      <el-table-column prop="taskIds" label="监控任务" show-overflow-tooltip>
+        <template #default="scope">
+          <el-tag
+            v-for="(item, index) in scope.row.taskNames"
+            :key="item"
+            class="mr-4px"
+          >
+            {{ item }} [{{ scope.row.taskIds[index] }}]
+          </el-tag>
+        </template>
+      </el-table-column>
       <el-table-column prop="cronTime" label="定时规则" show-overflow-tooltip />
       <el-table-column prop="status" label="状态">
         <template #default="scope">

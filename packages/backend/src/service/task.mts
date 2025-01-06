@@ -215,7 +215,7 @@ export const execTaskById = async (id: number) => {
   const pool = getPool();
   conn = await pool.getConnection();
   const [rows] = await conn.query<RowDataPacket[]>(
-    'SELECT * FROM task WHERE id = ? AND status != 0',
+    'SELECT url, fields, enable_proxy as useProxy FROM task WHERE id = ? AND status != 0',
     [id],
   );
   if (rows.length === 0) {
@@ -229,14 +229,14 @@ export const execTaskById = async (id: number) => {
   // 执行任务
   const startTime = dayjs();
   const task = rows[0];
-  const { url, fields, enableProxy } = task;
+  const { url, fields, useProxy } = task;
   let result: ITaskField[] = [];
   let isError = false;
   let retryNum = 0;
   try {
     result = await crawler({
       url,
-      useProxy: enableProxy,
+      useProxy,
       fields: JSON.parse(fields),
     });
   } catch (error) {

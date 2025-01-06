@@ -74,8 +74,6 @@ const submit = async () => {
   });
 };
 
-const editTaskFlow = () => {};
-
 const reset = () => {
   if (!formRef.value) return;
   formRef.value.resetFields();
@@ -95,8 +93,8 @@ const query = async () => {
   }
 };
 
-onMounted(() => {
-  getTasks();
+onMounted(async () => {
+  await getTasks();
   if (props.id) {
     query();
   }

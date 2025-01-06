@@ -16,6 +16,7 @@ export type IMonitorData = IMonitorType & {
   taskNames: string[];
   createTime: string;
   updateTime: string;
+  nextTime: string;
 };
 
 export const addNewMonitor: (data: IMonitorType) => Promise<null> = data => {
@@ -53,6 +54,13 @@ export const getMonitorList: () => Promise<IMonitorData[]> = () => {
 export const deleteMonitorById = (id: number) => {
   return axios({
     url: `/monitor/delete/${id}`,
+    method: 'post',
+  });
+};
+
+export const execMonitorById = (id: number) => {
+  return axios({
+    url: `/monitor/exec/${id}`,
     method: 'post',
   });
 };

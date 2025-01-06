@@ -6,13 +6,18 @@ import * as cheerio from 'cheerio';
 
 const debug = debugLibrary('crawler');
 
-type ICrawlerOptions = {
+export type ICrawlerOptions = {
   url: string;
   useProxy: number;
   fields: ITaskField[];
 };
 
-const crawler = async (crawlerOptions: ICrawlerOptions) => {
+export type IPatchCrawlerOptions = Array<ICrawlerOptions & { id: number }>;
+
+export type IFlowItem = Array<IFlowItem> | number;
+export type IFlowData = Array<IFlowItem>;
+
+const crawler = async (crawlerOptions: ICrawlerOptions, pre?: ITaskField[]) => {
   debug('crawlerOptions:', crawlerOptions);
   const { url, useProxy, fields } = crawlerOptions;
   const result: ITaskField[] = [];
@@ -53,8 +58,8 @@ const crawler = async (crawlerOptions: ICrawlerOptions) => {
     } else {
       const content = await page.content();
       const $ = cheerio.load(content);
-      const func = new Function('$', code)();
-      val = func($);
+      const func = new Function('$', 'pre', code)();
+      val = func($, pre);
     }
     result.push({
       ...field,
@@ -67,4 +72,52 @@ const crawler = async (crawlerOptions: ICrawlerOptions) => {
   return result;
 };
 
-export { crawler };
+const crawlerPatch = async (
+  tasks: IPatchCrawlerOptions,
+  taskFlow: IFlowData,
+) => {
+  let result: ITaskField[] = [];
+  let pre: ITaskField[] = [];
+  for (let i = 0; i < taskFlow.length; i++) {
+    const id = taskFlow[i];
+    if (typeof id === 'number') {
+      const task = tasks.find(t => t.id === id);
+      if (!task) {
+        throw new Error('任务不存在');
+      }
+      const { url, useProxy, fields } = task;
+      const crawlerOptions: ICrawlerOptions = {
+        url,
+        useProxy,
+        fields,
+      };
+      const res = await crawler(crawlerOptions, pre);
+      result = pre = res;
+    } else if (Array.isArray(id)) {
+      if (id.some(d => typeof d !== 'number')) {
+        throw new Error('最多只能嵌套一层数组');
+      }
+      const res = await Promise.all(
+        id.map(d => {
+          const task = tasks.find(t => t.id === d);
+          if (!task) {
+            throw new Error('任务不存在');
+          }
+          const { url, useProxy, fields } = task;
+          const crawlerOptions: ICrawlerOptions = {
+            url,
+            useProxy,
+            fields,
+          };
+          return crawler(crawlerOptions, pre);
+        }),
+      );
+      result = pre = res.flat();
+    } else {
+      throw new Error(`task_flow 格式错误: ${JSON.stringify(taskFlow)} `);
+    }
+  }
+  return result;
+};
+
+export { crawler, crawlerPatch };

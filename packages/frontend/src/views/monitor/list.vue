@@ -1,40 +1,35 @@
 <script setup lang="ts">
 import MonitorNew from '@/views/monitor/new.vue';
 
-type IMonitorDataWithLoading = IMonitorData & {
-  loading: boolean;
-};
-
-const taskData = ref<IMonitorDataWithLoading[]>([]);
+const taskData = ref<IMonitorData[]>([]);
 const loading = ref(false);
 const selectRow = ref<IMonitorData>();
 const visible = ref(false);
 
-const startMonitor = async (row: IMonitorDataWithLoading) => {
+const startMonitor = async (row: IMonitorData) => {
   if (row.status === 0) {
     ElMessage.error('监控单已删除');
     return;
   }
-  if (row.status === 3) {
+  if (row.status === 2) {
     ElMessage.error('监控单正在运行');
     return;
   }
   try {
-    row.loading = true;
-    // await execTaskById(row.id);
+    await execMonitorById(row.id);
   } catch (error) {
     console.error(error);
-  } finally {
-    row.loading = false;
   }
 };
 
-const editMonitor = (row: IMonitorDataWithLoading) => {
+const stopMonitor = async (row: IMonitorData) => {};
+
+const editMonitor = (row: IMonitorData) => {
   selectRow.value = row;
   visible.value = true;
 };
 
-const deleteMonitor = (row: IMonitorDataWithLoading) => {
+const deleteMonitor = (row: IMonitorData) => {
   ElMessageBox.confirm(`确认删除监控单「${row.name}」吗？`, '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
@@ -51,10 +46,7 @@ const query = async () => {
   try {
     loading.value = true;
     const data = await getMonitorList();
-    taskData.value = data.map(d => ({
-      ...d,
-      loading: false,
-    }));
+    taskData.value = data;
   } catch (error) {
     console.error(error);
   } finally {
@@ -82,6 +74,9 @@ onMounted(() => {
             <el-form label-width="106px">
               <el-form-item label="创建时间">
                 {{ scope.row.createTime }}
+              </el-form-item>
+              <el-form-item label="更新时间">
+                {{ scope.row.updateTime }}
               </el-form-item>
               <el-form-item label="描述信息">
                 {{ scope.row.descr }}
@@ -124,17 +119,24 @@ onMounted(() => {
           </el-tooltip>
         </template>
       </el-table-column>
-      <el-table-column prop="updateTime" label="更新时间" width="180px" />
-      <el-table-column label="操作" width="300px">
+      <el-table-column prop="nextTime" label="下一次执行时间" width="180px" />
+      <el-table-column label="操作" width="220px">
         <template #default="scope">
           <el-button
             type="success"
             size="small"
-            :loading="scope.row.loading"
-            :disabled="scope.row.loading"
+            v-if="scope.row.status === 1"
             @click="startMonitor(scope.row)"
           >
             启动
+          </el-button>
+          <el-button
+            type="primary"
+            size="small"
+            v-if="scope.row.status === 2"
+            @click="stopMonitor(scope.row)"
+          >
+            停止
           </el-button>
           <el-button
             type="primary"
@@ -155,7 +157,7 @@ onMounted(() => {
     </el-table>
     <el-dialog
       v-model="visible"
-      title="编辑任务"
+      title="编辑监控单"
       width="1100px"
       :close-on-click-modal="false"
       :destroy-on-close="true"

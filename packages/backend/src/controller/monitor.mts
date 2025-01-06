@@ -3,6 +3,7 @@ import debugLibrary from 'debug';
 import {
   addNewMonitor,
   deleteMonitorById,
+  execMonitorById,
   getMonitorById,
   queryMonitorList,
   updateMonitorById,
@@ -103,6 +104,25 @@ export default class TaskController {
     debug('id:', id);
     try {
       await deleteMonitorById(+id);
+      ctx.status = 200;
+      ctx.body = {
+        code: 0,
+        msg: 'success',
+      };
+    } catch (error) {
+      ctx.status = 200;
+      ctx.body = {
+        code: 500,
+        msg: error.message,
+      };
+    }
+  }
+
+  public static async execMonitorById(ctx: Koa.Context) {
+    const id = ctx.params.id;
+    debug('id:', id);
+    try {
+      await execMonitorById(ctx, +id);
       ctx.status = 200;
       ctx.body = {
         code: 0,

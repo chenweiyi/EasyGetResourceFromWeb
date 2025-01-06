@@ -26,6 +26,7 @@ declare global {
   const deleteMonitorById: typeof import('./src/api/monitor')['deleteMonitorById']
   const deleteTaskById: typeof import('./src/api/task')['deleteTaskById']
   const effectScope: typeof import('vue')['effectScope']
+  const execMonitorById: typeof import('./src/api/monitor')['execMonitorById']
   const execTaskById: typeof import('./src/api/task')['execTaskById']
   const getCurrentInstance: typeof import('vue')['getCurrentInstance']
   const getCurrentScope: typeof import('vue')['getCurrentScope']

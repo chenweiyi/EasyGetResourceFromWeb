@@ -16,10 +16,10 @@ const menus = ref<IMenu[]>(
   routes
     .filter(r => r.meta?.menu)
     .map(r => ({
-      title: r.meta!.title ?? '',
+      title: (r.meta!.title as string) ?? '',
       path: r.path,
-      name: r.name!,
-      icon: r.meta!.icon ?? '',
+      name: r.name! as string,
+      icon: r.meta!.icon as FunctionalComponent,
     })),
 );
 
@@ -34,6 +34,16 @@ const active = computed(() => {
 const clickMenu = (menu: IMenu) => {
   router.push({ name: menu.name });
 };
+
+watch(
+  () => route.name,
+  () => {
+    document.title = `Data Platform - ${route.meta.title as string}`;
+  },
+  {
+    immediate: true,
+  },
+);
 </script>
 
 <template>

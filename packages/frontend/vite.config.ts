@@ -38,6 +38,9 @@ export default defineConfig({
           type: true,
         },
         {
+          dayjs: [['default', 'dayjs']],
+        },
+        {
           from: 'vue-router',
           imports: ['createRouter', 'createWebHistory'],
         },

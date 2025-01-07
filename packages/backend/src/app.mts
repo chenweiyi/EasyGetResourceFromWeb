@@ -10,13 +10,20 @@ import onerror from 'koa-onerror';
 import serve from 'koa-static';
 import path from 'path';
 import conditional from './utils/koa-conditional-get.mjs';
+import { CronJob } from 'cron';
+import { cronMap } from './crawler/cronInstance.mjs';
 
 import { router as task } from './routes/task.mjs';
 import { router as monitor } from './routes/monitor.mjs';
 
 const debug = debugLibrary('app');
 
-let app = new Koa();
+export interface MyContext extends Koa.Context {
+  cronMap: Map<number, CronJob>;
+}
+
+let app = new Koa<any, MyContext>();
+app.context.cronMap = cronMap;
 
 app.use(
   cors({

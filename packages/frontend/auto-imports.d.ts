@@ -21,6 +21,7 @@ declare global {
   const createRouter: typeof import('vue-router')['createRouter']
   const createWebHistory: typeof import('vue-router')['createWebHistory']
   const customRef: typeof import('vue')['customRef']
+  const dayjs: typeof import('dayjs')['default']
   const defineAsyncComponent: typeof import('vue')['defineAsyncComponent']
   const defineComponent: typeof import('vue')['defineComponent']
   const deleteMonitorById: typeof import('./src/api/monitor')['deleteMonitorById']
@@ -32,6 +33,7 @@ declare global {
   const getCurrentScope: typeof import('vue')['getCurrentScope']
   const getMonitorById: typeof import('./src/api/monitor')['getMonitorById']
   const getMonitorList: typeof import('./src/api/monitor')['getMonitorList']
+  const getMonitorRecord: typeof import('./src/api/monitor')['getMonitorRecord']
   const getTaskById: typeof import('./src/api/task')['getTaskById']
   const getTaskList: typeof import('./src/api/task')['getTaskList']
   const getTaskRecord: typeof import('./src/api/task')['getTaskRecord']
@@ -67,6 +69,7 @@ declare global {
   const shallowReactive: typeof import('vue')['shallowReactive']
   const shallowReadonly: typeof import('vue')['shallowReadonly']
   const shallowRef: typeof import('vue')['shallowRef']
+  const stopMonitorById: typeof import('./src/api/monitor')['stopMonitorById']
   const toRaw: typeof import('vue')['toRaw']
   const toRef: typeof import('vue')['toRef']
   const toRefs: typeof import('vue')['toRefs']
@@ -102,7 +105,7 @@ declare global {
   export type { FormInstance } from 'element-plus'
   import('element-plus')
   // @ts-ignore
-  export type { IMonitorType, IMonitorWithId, IMonitorData } from './src/api/monitor'
+  export type { IMonitorType, IMonitorWithId, IMonitorData, IMonitorRecord } from './src/api/monitor'
   import('./src/api/monitor')
   // @ts-ignore
   export type { ITaskType, ITaskData, ITaskWithId, ITaskField, ITaskRecord } from './src/api/task'

@@ -5,6 +5,7 @@ const taskData = ref<IMonitorData[]>([]);
 const loading = ref(false);
 const selectRow = ref<IMonitorData>();
 const visible = ref(false);
+const btnLoading = ref(false);
 
 const startMonitor = async (row: IMonitorData) => {
   if (row.status === 0) {
@@ -16,13 +17,44 @@ const startMonitor = async (row: IMonitorData) => {
     return;
   }
   try {
+    btnLoading.value = true;
     await execMonitorById(row.id);
+    await query();
   } catch (error) {
     console.error(error);
+  } finally {
+    btnLoading.value = false;
   }
 };
 
-const stopMonitor = async (row: IMonitorData) => {};
+const stopMonitor = async (row: IMonitorData) => {
+  if (row.status === 0) {
+    ElMessage.error('监控单已删除');
+    return;
+  }
+  if (row.status === 1) {
+    ElMessage.error('监控单已停止');
+    return;
+  }
+  try {
+    btnLoading.value = true;
+    await stopMonitorById(row.id);
+    await query();
+  } catch (error) {
+    console.error(error);
+  } finally {
+    btnLoading.value = false;
+  }
+};
+
+const getExecTime = (cronTime: string) => {
+  const num = parseInt(cronTime.trim());
+  if (isNaN(num)) {
+    return cronTime;
+  } else {
+    return dayjs(num).format('YYYY-MM-DD HH:mm:ss');
+  }
+};
 
 const editMonitor = (row: IMonitorData) => {
   selectRow.value = row;
@@ -88,7 +120,7 @@ onMounted(() => {
           </div>
         </template>
       </el-table-column>
-      <el-table-column prop="name" label="监控单名称" show-overflow-tooltip />
+      <el-table-column prop="name" label="名称" show-overflow-tooltip />
       <el-table-column prop="taskIds" label="监控任务" show-overflow-tooltip>
         <template #default="scope">
           <el-tag
@@ -100,7 +132,11 @@ onMounted(() => {
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="cronTime" label="定时规则" show-overflow-tooltip />
+      <el-table-column prop="cronTime" label="定时规则" show-overflow-tooltip>
+        <template #default="scope">
+          <span>{{ getExecTime(scope.row.cronTime) }}</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="status" label="状态">
         <template #default="scope">
           <el-tooltip
@@ -108,7 +144,7 @@ onMounted(() => {
             v-if="scope.row.status === 2"
             placement="top"
           >
-            <i-ep-video-play class="text-green" />
+            <i-ep-video-play class="text-blue" />
           </el-tooltip>
           <el-tooltip
             content="正常"
@@ -126,6 +162,7 @@ onMounted(() => {
             type="success"
             size="small"
             v-if="scope.row.status === 1"
+            :loading="btnLoading"
             @click="startMonitor(scope.row)"
           >
             启动
@@ -134,6 +171,7 @@ onMounted(() => {
             type="primary"
             size="small"
             v-if="scope.row.status === 2"
+            :loading="btnLoading"
             @click="stopMonitor(scope.row)"
           >
             停止
@@ -141,6 +179,7 @@ onMounted(() => {
           <el-button
             type="primary"
             size="small"
+            :disabled="scope.row.status === 2"
             @click="editMonitor(scope.row)"
           >
             编辑
@@ -148,6 +187,7 @@ onMounted(() => {
           <el-button
             type="danger"
             size="small"
+            :disabled="scope.row.status === 2"
             @click="deleteMonitor(scope.row)"
           >
             删除

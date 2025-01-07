@@ -107,7 +107,11 @@ onMounted(async () => {
       <el-button type="primary" :disabled="loading" @click="submit">{{
         props.id ? '更新' : '添加'
       }}</el-button>
-      <el-button type="danger" :disabled="loading" @click="reset"
+      <el-button
+        type="danger"
+        :disabled="loading"
+        @click="reset"
+        v-if="!props.id"
         >重置</el-button
       >
     </div>
@@ -134,11 +138,20 @@ onMounted(async () => {
           />
         </el-form-item>
         <el-form-item label="选择任务" class="w-400px" prop="taskIds">
+          <template #label>
+            <div class="flex items-center">
+              <span class="mr-4px">选择任务</span>
+              <el-tooltip content="慎重，保存后不允许修改" placement="top">
+                <i-ep-info-filled class="text-gray-400 w-16px h-16px" />
+              </el-tooltip>
+            </div>
+          </template>
           <el-select
             v-model="form.taskIds"
             placeholder="请选择任务"
             clearable
             multiple
+            :disabled="!!props.id"
           >
             <el-option
               v-for="item in tasks"
@@ -152,13 +165,36 @@ onMounted(async () => {
           </el-select>
         </el-form-item>
         <el-form-item label="任务流程" class="w-700px" prop="taskFlow">
+          <template #label>
+            <div class="flex items-center">
+              <span class="mr-4px">任务流程</span>
+              <el-tooltip content="慎重，保存后不允许修改" placement="top">
+                <i-ep-info-filled class="text-gray-400 w-16px h-16px" />
+              </el-tooltip>
+            </div>
+          </template>
           <el-input
             v-model="form.taskFlow"
             placeholder="[1,2,3]表示任务1,2,3串行执行；[1,[2,3],4]表示任务1,[2,3],4串行执行，任务2,3并行执行"
+            :disabled="!!props.id"
           />
         </el-form-item>
-        <el-form-item label="执行时间" class="w-400px" prop="cronTime">
-          <el-input v-model="form.cronTime" placeholder="秒 分 时 日 月 周" />
+        <el-form-item label="执行时间" class="w-700px" prop="cronTime">
+          <template #label>
+            <div class="flex items-center">
+              <span class="mr-4px">执行时间</span>
+              <el-tooltip
+                content="cron参考 https://github.com/kelektiv/node-cron"
+                placement="top"
+              >
+                <i-ep-info-filled class="text-gray-400 w-16px h-16px" />
+              </el-tooltip>
+            </div>
+          </template>
+          <el-input
+            v-model="form.cronTime"
+            placeholder="cron时间规则: 秒 分 时 日 月 周 ；或者指定一个时间戳 "
+          />
         </el-form-item>
       </el-form>
     </div>

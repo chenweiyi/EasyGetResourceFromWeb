@@ -1,4 +1,4 @@
-import Koa from 'koa';
+import { type Context } from 'koa';
 import { PoolConnection, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import { getPool } from '../utils/mysql.mjs';
 import debugLibrary from 'debug';
@@ -6,6 +6,7 @@ import dayjs from 'dayjs';
 import { crawlerPatch, IPatchCrawlerOptions } from '../crawler/index.mjs';
 import { type ITaskField } from './task.mjs';
 import { CronJob } from 'cron';
+import { type MyContext } from '../app.mjs';
 
 const debug = debugLibrary('monitor:service');
 
@@ -164,7 +165,7 @@ export const getMonitorById = async (id: number) => {
     id: r.id,
     name: r.name,
     descr: r.descr,
-    taskIds: r.task_ids.split(','),
+    taskIds: r.task_ids.split(',').map(id => Number(id)),
     taskNames: r.task_names.split(','),
     cronTime: r.cron_time,
     status: r.status,
@@ -205,7 +206,7 @@ export const queryMonitorList = async () => {
     id: r.id,
     name: r.name,
     descr: r.descr,
-    taskIds: r.task_ids.split(','),
+    taskIds: r.task_ids.split(',').map(id => Number(id)),
     taskNames: r.task_names.split(','),
     cronTime: r.cron_time,
     status: r.status,
@@ -222,12 +223,15 @@ export const deleteMonitorById = async (id: number) => {
   return await modifyMonitorField(id, 0);
 };
 
-export const execMonitorById = async (ctx: Koa.Context, id: number) => {
+export const execMonitorById = async (ctx: MyContext, id: number) => {
   let conn: PoolConnection | null = null;
   const pool = getPool();
   conn = await pool.getConnection();
 
   try {
+    if (ctx.cronMap?.has(id)) {
+      throw new Error('监控单任务已存在');
+    }
     const [rows] = await conn.query<RowDataPacket[]>(
       'SELECT * FROM monitor WHERE id = ? AND status != 0',
       [id],
@@ -261,8 +265,8 @@ export const execMonitorById = async (ctx: Koa.Context, id: number) => {
     }
 
     const tasks = await conn.query<RowDataPacket[]>(
-      'SELECT id, url, fields, enable_proxy as useProxy FROM task WHERE id = ? AND status != 0',
-      res[0][0].task_ids.split(','),
+      'SELECT id, url, fields, enable_proxy as useProxy FROM task WHERE id IN (?) AND status != 0',
+      res[0][0].task_ids.split(',').map(id => Number(id)),
     );
 
     if (tasks[0].length === 0) {
@@ -270,7 +274,14 @@ export const execMonitorById = async (ctx: Koa.Context, id: number) => {
     }
 
     const taskFlow = JSON.parse(res[0][0].task_flow);
-    const cronTime = res[0][0].cron_time;
+    let cronTime = res[0][0].cron_time.trim();
+
+    debug('cronTime:', cronTime);
+
+    if (!isNaN(cronTime)) {
+      // 兼容时间戳
+      cronTime = new Date(cronTime);
+    }
 
     const job = CronJob.from({
       cronTime,
@@ -321,7 +332,7 @@ export const execMonitorById = async (ctx: Koa.Context, id: number) => {
           const date = dayjs(
             nextDate.setZone('Asia/Shanghai').valueOf(),
           ).format('YYYY-MM-DD HH:mm:ss');
-          debug('date:', date);
+          debug('next date:', date);
 
           await modifyMonitorField(id, date, conn, 'next_time');
         } catch (error) {
@@ -330,7 +341,7 @@ export const execMonitorById = async (ctx: Koa.Context, id: number) => {
           conn2.release();
         }
       },
-      start: true,
+      start: false,
       timeZone: 'Asia/Shanghai',
     });
 
@@ -342,12 +353,16 @@ export const execMonitorById = async (ctx: Koa.Context, id: number) => {
     debug('date:', date);
     await modifyMonitorField(id, date, conn, 'next_time');
 
-    if (!ctx.state.cronMap) {
-      ctx.state.cronMap = new Map<number, CronJob>();
+    if (!ctx.cronMap) {
+      ctx.cronMap = new Map<number, CronJob>();
     }
 
-    if (!(ctx.state.cronMap as Map<number, CronJob>).has(id)) {
-      (ctx.state.cronMap as Map<number, CronJob>).set(id, job);
+    if (!ctx.cronMap.has(id)) {
+      ctx.cronMap.set(id, job);
+    } else {
+      const cropDemo = ctx.cronMap.get(id);
+      cropDemo.stop();
+      ctx.cronMap.set(id, job);
     }
   } catch (error) {
     debug(error);
@@ -355,4 +370,89 @@ export const execMonitorById = async (ctx: Koa.Context, id: number) => {
   } finally {
     conn.release();
   }
+};
+
+export const stopMonitorById = async (ctx: MyContext, id: number) => {
+  let conn: PoolConnection | null = null;
+  const pool = getPool();
+  conn = await pool.getConnection();
+
+  try {
+    const [rows] = await conn.query<RowDataPacket[]>(
+      'SELECT * FROM monitor WHERE id = ? AND status != 0',
+      [id],
+    );
+    if (rows.length === 0) {
+      throw new Error('监控单不存在或已删除');
+    }
+
+    if (!ctx.cronMap?.has(id)) {
+      throw new Error('监控单任务不存在或已删除');
+    } else {
+      const cropDemo = ctx.cronMap.get(id);
+      cropDemo.stop();
+      ctx.cronMap.delete(id);
+    }
+    // 更新任务状态为正在执行
+    await modifyMonitorField(id, 1, conn);
+  } catch (error) {
+    debug(error);
+    throw new Error(error);
+  } finally {
+    conn.release();
+  }
+};
+
+export const stopAllMonitor = async (ctx: MyContext) => {
+  if (ctx.cronMap.size > 0) {
+    const ids = Array.from(ctx.cronMap.keys());
+    for (let [key, value] of ctx.cronMap) {
+      value.stop();
+    }
+    ctx.cronMap.clear();
+    const pool = getPool();
+    await pool.query<ResultSetHeader>(
+      'UPDATE monitor SET status = 1 WHERE id IN (?)',
+      ids,
+    );
+  }
+};
+
+export const getMonitorRecord = async () => {
+  const pool = getPool();
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT 
+      mr.id, 
+      mr.monitor_id, 
+      mr.status,
+      mr.start_time, 
+      mr.end_time,
+      mr.exec_time,
+      mr.result,
+      GROUP_CONCAT(t.id) as task_ids,
+      GROUP_CONCAT(t.name) as task_names
+    FROM monitorRecord as mr 
+    LEFT JOIN
+      monitor as m ON mr.monitor_id = m.id
+    LEFT JOIN 
+      monitor_task as mt ON mr.monitor_id = mt.monitor_id
+    LEFT JOIN
+      task as t ON mt.task_id = t.id 
+    GROUP BY
+      mr.monitor_id
+    ORDER BY mr.end_time DESC
+    `,
+  );
+  return rows.map(row => ({
+    id: row.id,
+    monitorId: row.monitor_id,
+    startTime: dayjs(row.start_time).format('YYYY-MM-DD HH:mm:ss'),
+    endTime: dayjs(row.end_time).format('YYYY-MM-DD HH:mm:ss'),
+    status: row.status,
+    execTime: row.exec_time,
+    result: row.result,
+    name: row.name,
+    taskIds: row.task_ids.split(',').map(id => Number(id)),
+    taskNames: row.task_names.split(','),
+  }));
 };

@@ -5,11 +5,15 @@ import {
   deleteMonitorById,
   execMonitorById,
   getMonitorById,
+  getMonitorRecord,
   queryMonitorList,
+  stopAllMonitor,
+  stopMonitorById,
   updateMonitorById,
   type IMonitorType,
   type IMonitorWithId,
 } from '../service/monitor.mjs';
+import { type MyContext } from '../app.mjs';
 
 const debug = debugLibrary('monitor:controller');
 
@@ -118,7 +122,7 @@ export default class TaskController {
     }
   }
 
-  public static async execMonitorById(ctx: Koa.Context) {
+  public static async execMonitorById(ctx: MyContext) {
     const id = ctx.params.id;
     debug('id:', id);
     try {
@@ -127,6 +131,62 @@ export default class TaskController {
       ctx.body = {
         code: 0,
         msg: 'success',
+      };
+    } catch (error) {
+      ctx.status = 200;
+      ctx.body = {
+        code: 500,
+        msg: error.message,
+      };
+    }
+  }
+
+  public static async stopMonitorById(ctx: MyContext) {
+    const id = ctx.params.id;
+    debug('id:', id);
+    try {
+      await stopMonitorById(ctx, +id);
+      ctx.status = 200;
+      ctx.body = {
+        code: 0,
+        msg: 'success',
+      };
+    } catch (error) {
+      ctx.status = 200;
+      ctx.body = {
+        code: 500,
+        msg: error.message,
+      };
+    }
+  }
+
+  public static async stopAllMonitor(ctx: MyContext) {
+    try {
+      await stopAllMonitor(ctx);
+      ctx.status = 200;
+      ctx.body = {
+        code: 0,
+        msg: 'success',
+      };
+    } catch (error) {
+      ctx.status = 200;
+      ctx.body = {
+        code: 500,
+        msg: error.message,
+      };
+    }
+  }
+
+  public static async getMonitorRecord(ctx) {
+    debug('getMonitorRecord...');
+    try {
+      const res = await getMonitorRecord();
+      debug('getMonitorRecord res:', res);
+      ctx.status = 200;
+      ctx.body = {
+        code: 0,
+        msg: 'success',
+        data: res,
       };
     } catch (error) {
       ctx.status = 200;

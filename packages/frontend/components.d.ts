@@ -37,6 +37,8 @@ declare module 'vue' {
     IconSupport: typeof import('./src/components/icons/IconSupport.vue')['default']
     IconTooling: typeof import('./src/components/icons/IconTooling.vue')['default']
     IEpCloseBold: typeof import('~icons/ep/close-bold')['default']
+    IEpInfoFilled: typeof import('~icons/ep/info-filled')['default']
+    IEpQuestionCircle: typeof import('~icons/ep/question-circle')['default']
     IEpSelect: typeof import('~icons/ep/select')['default']
     IEpVideoPause: typeof import('~icons/ep/video-pause')['default']
     IEpVideoPlay: typeof import('~icons/ep/video-play')['default']

@@ -19,16 +19,25 @@ const routes: RouteRecordRaw[] = [
         path: 'record',
         name: 'monitor-record',
         component: () => import('../views/monitor/record.vue'),
+        meta: {
+          title: '监控记录',
+        },
       },
       {
         path: 'list',
         name: 'monitor-list',
         component: () => import('../views/monitor/list.vue'),
+        meta: {
+          title: '监控列表',
+        },
       },
       {
         path: 'new',
         name: 'monitor-new',
         component: () => import('../views/monitor/new.vue'),
+        meta: {
+          title: '新建监控',
+        },
       },
     ],
   },
@@ -47,16 +56,25 @@ const routes: RouteRecordRaw[] = [
         path: 'record',
         name: 'task-record',
         component: () => import('../views/task/record.vue'),
+        meta: {
+          title: '任务记录',
+        },
       },
       {
         path: 'list',
         name: 'task-list',
         component: () => import('../views/task/list.vue'),
+        meta: {
+          title: '任务列表',
+        },
       },
       {
         path: 'new',
         name: 'task-new',
         component: () => import('../views/task/new.vue'),
+        meta: {
+          title: '新建任务',
+        },
       },
     ],
   },

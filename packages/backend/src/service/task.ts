@@ -1,8 +1,9 @@
 import { PoolConnection, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
-import { getPool } from '../utils/mysql';
+import { getConn, getPool } from '../utils/mysql';
 import debugLibrary from 'debug';
 import dayjs from 'dayjs';
 import { crawler, type ICrawlerOptions } from '../crawler/index';
+import { modifyTableField } from './util';
 
 const debug = debugLibrary('task:service');
 
@@ -42,12 +43,10 @@ const retryCrawler = async (
       currentRetryNum,
     };
   } catch (error) {
-    debug(error);
     if (retryNum > 0 && currentRetryNum <= retryNum) {
       try {
         return await retryCrawler(crawlerOption, retryNum, currentRetryNum + 1);
       } catch (error) {
-        debug(error);
         throw error;
       }
     } else {
@@ -56,31 +55,8 @@ const retryCrawler = async (
   }
 };
 
-export const modifyTaskField = async (
-  id: number,
-  value: number | string | Record<string, any>,
-  conn?: PoolConnection,
-  field: string = 'status',
-) => {
-  const pool = conn || getPool();
-  if (typeof value === 'object') {
-    await pool.query<ResultSetHeader>(`UPDATE task SET ? WHERE id IN (?)`, [
-      value,
-      id,
-    ]);
-  } else {
-    await pool.query<ResultSetHeader>(
-      `UPDATE task SET ${field} = ? WHERE id = ?`,
-      [value, id],
-    );
-  }
-};
-
 export const getTaskRecord = async (query: IQueryCommonParams) => {
-  let conn: PoolConnection | null = null;
-  const pool = getPool();
-  conn = await pool.getConnection();
-
+  const conn = await getConn();
   try {
     // 查询总数
     const [totalRows] = await conn.query<RowDataPacket[]>(
@@ -140,59 +116,90 @@ export const getTaskRecord = async (query: IQueryCommonParams) => {
 };
 
 export const addNewTask = async (data: ITaskType) => {
-  let conn: PoolConnection | null = null;
-  const pool = getPool();
-  conn = await pool.getConnection();
-  const [rows] = await conn.query<RowDataPacket[]>(
-    'SELECT * FROM task WHERE name = ?',
-    [data.name],
-  );
-  if (rows.length > 0) {
+  const conn = await getConn();
+  try {
+    const [rows] = await conn.query<RowDataPacket[]>(
+      'SELECT * FROM task WHERE name = ?',
+      [data.name],
+    );
+    if (rows.length > 0) {
+      throw new Error('任务已存在');
+    }
+
+    const time = dayjs().format('YYYY-MM-DD HH:mm:ss');
+    const d = {
+      name: data.name,
+      url: data.url,
+      enable_proxy: data.enableProxy,
+      status: 1,
+      descr: data.descr || '',
+      fields: JSON.stringify(data.fields),
+      create_time: time,
+      update_time: time,
+    };
+
+    debug('d:', d);
+
+    const res = await conn.query<ResultSetHeader>('INSERT INTO task SET ?', d);
+    if (res[0].affectedRows === 0) {
+      throw new Error('添加任务失败');
+    }
+    return res[0].insertId;
+  } catch (error) {
+    throw error;
+  } finally {
     conn.release();
-    throw new Error('任务已存在');
   }
-
-  const time = dayjs().format('YYYY-MM-DD HH:mm:ss');
-  const d = {
-    name: data.name,
-    url: data.url,
-    enable_proxy: data.enableProxy,
-    status: 1,
-    descr: data.descr || '',
-    fields: JSON.stringify(data.fields),
-    create_time: time,
-    update_time: time,
-  };
-
-  debug('d:', d);
-
-  const res = await conn.query<ResultSetHeader>('INSERT INTO task SET ?', d);
-  if (res[0].affectedRows === 0) {
-    conn.release();
-    throw new Error('添加任务失败');
-  }
-  conn.release();
-  return res[0].insertId;
 };
 
 export const queryTaskList = async (query: IQueryCommonParams) => {
-  let conn: PoolConnection | null = null;
-  const pool = getPool();
-  conn = await pool.getConnection();
-
-  // 查询总数
-  const [totalRows] = await conn.query<RowDataPacket[]>(
-    `SELECT COUNT(*) as total 
+  const conn = await getConn();
+  try {
+    // 查询总数
+    const [totalRows] = await conn.query<RowDataPacket[]>(
+      `SELECT COUNT(*) as total 
      FROM task AS a 
      WHERE a.status != 0 AND a.status != 2
     `,
-  );
+    );
 
-  const [rows] = await conn.query<RowDataPacket[]>(
-    'SELECT * FROM task WHERE status != 0 ORDER BY create_time DESC',
-  );
-  return {
-    list: rows.map(r => ({
+    const [rows] = await conn.query<RowDataPacket[]>(
+      'SELECT * FROM task WHERE status != 0 ORDER BY create_time DESC',
+    );
+    return {
+      list: rows.map(r => ({
+        id: r.id,
+        name: r.name,
+        url: r.url,
+        descr: r.descr,
+        enableProxy: r.enable_proxy,
+        status: r.status,
+        retryNum: r.retry_num,
+        fields: JSON.parse(r.fields),
+        createTime: dayjs(r.create_time).format('YYYY-MM-DD HH:mm:ss'),
+        updateTime: dayjs(r.update_time).format('YYYY-MM-DD HH:mm:ss'),
+        execTotalNum: r.exec_total_num,
+        lastExecTime: r.last_exec_time
+          ? dayjs(r.last_exec_time).format('YYYY-MM-DD HH:mm:ss')
+          : '',
+      })),
+      total: totalRows[0]?.total ?? 0,
+    };
+  } catch (error) {
+    throw error;
+  } finally {
+    conn.release();
+  }
+};
+
+export const getTaskById = async (id: number) => {
+  const conn = await getConn();
+  try {
+    const [rows] = await conn.query<RowDataPacket[]>(
+      'SELECT * FROM task WHERE id = ?',
+      [id],
+    );
+    return rows.map(r => ({
       id: r.id,
       name: r.name,
       url: r.url,
@@ -204,75 +211,63 @@ export const queryTaskList = async (query: IQueryCommonParams) => {
       createTime: dayjs(r.create_time).format('YYYY-MM-DD HH:mm:ss'),
       updateTime: dayjs(r.update_time).format('YYYY-MM-DD HH:mm:ss'),
       execTotalNum: r.exec_total_num,
-      lastExecTime: r.last_exec_time
-        ? dayjs(r.last_exec_time).format('YYYY-MM-DD HH:mm:ss')
-        : '',
-    })),
-    total: totalRows[0]?.total ?? 0,
-  };
-};
-
-export const getTaskById = async (id: number) => {
-  const pool = getPool();
-  const [rows] = await pool.query<RowDataPacket[]>(
-    'SELECT * FROM task WHERE id = ?',
-    [id],
-  );
-  return rows.map(r => ({
-    id: r.id,
-    name: r.name,
-    url: r.url,
-    descr: r.descr,
-    enableProxy: r.enable_proxy,
-    status: r.status,
-    retryNum: r.retry_num,
-    fields: JSON.parse(r.fields),
-    createTime: dayjs(r.create_time).format('YYYY-MM-DD HH:mm:ss'),
-    updateTime: dayjs(r.update_time).format('YYYY-MM-DD HH:mm:ss'),
-    execTotalNum: r.exec_total_num,
-    lastExecTime: dayjs(r.last_exec_time).format('YYYY-MM-DD HH:mm:ss'),
-  }));
+      lastExecTime: dayjs(r.last_exec_time).format('YYYY-MM-DD HH:mm:ss'),
+    }));
+  } catch (error) {
+    throw error;
+  } finally {
+    conn.release();
+  }
 };
 
 export const updateTaskById = async (data: ITaskWithId) => {
-  const pool = getPool();
-  const [rows] = await pool.query<RowDataPacket[]>(
-    'SELECT * FROM task WHERE id = ?',
-    [data.id],
-  );
-  if (rows.length === 0) {
-    throw new Error('任务不存在');
-  }
-  const d = {
-    name: data.name,
-    descr: data.descr || '',
-    url: data.url,
-    enable_proxy: data.enableProxy,
-    retry_num: data.retryNum,
-    fields: JSON.stringify(data.fields),
-    update_time: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-  };
+  const conn = await getConn();
+  try {
+    const [rows] = await conn.query<RowDataPacket[]>(
+      'SELECT * FROM task WHERE id = ?',
+      [data.id],
+    );
+    if (rows.length === 0) {
+      throw new Error('任务不存在');
+    }
+    const d = {
+      name: data.name,
+      descr: data.descr || '',
+      url: data.url,
+      enable_proxy: data.enableProxy,
+      retry_num: data.retryNum,
+      fields: JSON.stringify(data.fields),
+      update_time: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+    };
 
-  debug('d:', d);
+    debug('d:', d);
 
-  const res = await pool.query<ResultSetHeader>(
-    'UPDATE task SET ? WHERE id = ?',
-    [d, data.id],
-  );
-  if (res[0].affectedRows === 0) {
-    throw new Error('更新任务失败');
+    const res = await conn.query<ResultSetHeader>(
+      'UPDATE task SET ? WHERE id = ?',
+      [d, data.id],
+    );
+    if (res[0].affectedRows === 0) {
+      throw new Error('更新任务失败');
+    }
+    return res[0].insertId;
+  } catch (error) {
+    throw error;
+  } finally {
+    conn.release();
   }
-  return res[0].insertId;
 };
 
 export const deleteTaskById = async (id: number) => {
-  return await modifyTaskField(id, 0);
+  return await modifyTableField({
+    id,
+    value: 0,
+    field: 'status',
+    table: 'task',
+  });
 };
 
 export const copyTaskById = async (id: number) => {
-  let conn: PoolConnection | null = null;
-  const pool = getPool();
-  conn = await pool.getConnection();
+  const conn = await getConn();
   try {
     const [rows] = await conn.query<RowDataPacket[]>(
       'SELECT * FROM task WHERE id = ?',
@@ -303,7 +298,6 @@ export const copyTaskById = async (id: number) => {
     }
     return res[0].insertId;
   } catch (error) {
-    debug(error);
     throw error;
   } finally {
     conn.release();
@@ -311,9 +305,7 @@ export const copyTaskById = async (id: number) => {
 };
 
 export const execTaskById = async (id: number) => {
-  let conn: PoolConnection | null = null;
-  const pool = getPool();
-  conn = await pool.getConnection();
+  const conn = await getConn();
   try {
     const [rows] = await conn.query<RowDataPacket[]>(
       `SELECT 
@@ -334,14 +326,15 @@ export const execTaskById = async (id: number) => {
 
     const startTime = dayjs();
     // 更新任务状态为正在执行
-    await modifyTaskField(
+    await modifyTableField({
       id,
-      {
+      value: {
         status: 3,
         last_exec_time: startTime.format('YYYY-MM-DD HH:mm:ss'),
       },
       conn,
-    );
+      table: 'task',
+    });
 
     // 执行任务
     const task = rows[0];
@@ -362,7 +355,7 @@ export const execTaskById = async (id: number) => {
         0,
       );
     } catch (error) {
-      console.error(error);
+      debug(error);
       isError = true;
     }
 
@@ -388,11 +381,17 @@ export const execTaskById = async (id: number) => {
       throw new Error('插入任务记录失败');
     }
 
-    await modifyTaskField(id, 1, conn);
-    await modifyTaskField(id, execTotalNum + 1, conn, 'exec_total_num');
+    await modifyTableField({
+      id,
+      value: {
+        status: 1,
+        exec_total_num: execTotalNum + 1,
+      },
+      conn,
+      table: 'task',
+    });
     return res2[0].insertId;
   } catch (error) {
-    debug('error:', error);
     throw error;
   } finally {
     conn.release();

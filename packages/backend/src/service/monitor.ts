@@ -1,11 +1,12 @@
 import { PoolConnection, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
-import { getPool } from '../utils/mysql';
+import { getConn, getPool } from '../utils/mysql';
 import debugLibrary from 'debug';
 import dayjs from 'dayjs';
 import { crawlerPatch, IPatchCrawlerOptions } from '../crawler/index';
 import { type ITaskField } from './task';
 import { CronJob } from 'cron';
 import { MyContext, MyQueryContext } from '../@types/api';
+import { modifyTableField } from './util';
 
 const debug = debugLibrary('monitor:service');
 
@@ -21,165 +22,162 @@ export type IMonitorWithId = IMonitorType & {
   id: number | string;
 };
 
-export const modifyMonitorField = async (
-  id: number,
-  value: number | string,
-  conn?: PoolConnection,
-  field: string = 'status',
-) => {
-  const pool = conn || getPool();
-  const [rows] = await pool.query<ResultSetHeader>(
-    `UPDATE monitor SET ${field} = ? WHERE id = ?`,
-    [value, id],
-  );
-  return rows.insertId;
-};
-
 export const addNewMonitor = async (data: IMonitorType) => {
-  let conn: PoolConnection | null = null;
-  const pool = getPool();
-  conn = await pool.getConnection();
-  const [rows] = await conn.query<RowDataPacket[]>(
-    'SELECT * FROM monitor WHERE name = ?',
-    [data.name],
-  );
-  if (rows.length > 0) {
-    conn.release();
-    throw new Error('监控单已存在');
-  }
-
-  const time = dayjs().format('YYYY-MM-DD HH:mm:ss');
-  const d = {
-    name: data.name,
-    descr: data.descr,
-    // task_ids: data.taskIds.join(','),
-    cron_time: data.cronTime,
-    task_flow: data.taskFlow,
-    status: 1,
-    create_time: time,
-    update_time: time,
-  };
-
-  debug('d:', d);
-
+  const conn = await getConn();
   try {
-    await conn.beginTransaction();
-    const res = await conn.query<ResultSetHeader>(
-      'INSERT INTO monitor SET ?',
-      d,
+    const [rows] = await conn.query<RowDataPacket[]>(
+      'SELECT * FROM monitor WHERE name = ?',
+      [data.name],
     );
-    if (res[0].affectedRows === 0) {
-      throw new Error('添加监控单失败');
+    if (rows.length > 0) {
+      throw new Error('监控单已存在');
     }
 
-    const mt = data.taskIds.map(id => {
-      return {
-        monitor_id: res[0].insertId,
-        task_id: id,
-      };
-    });
+    const time = dayjs().format('YYYY-MM-DD HH:mm:ss');
+    const d = {
+      name: data.name,
+      descr: data.descr,
+      // task_ids: data.taskIds.join(','),
+      cron_time: data.cronTime,
+      task_flow: data.taskFlow,
+      status: 1,
+      create_time: time,
+      update_time: time,
+    };
 
-    debug('mt:', mt);
+    debug('d:', d);
 
-    const res2 = await conn.query<ResultSetHeader>(
-      'INSERT INTO monitor_task SET ?',
-      mt,
-    );
-    debug('affectedRows:', res2[0].affectedRows);
+    try {
+      await conn.beginTransaction();
+      const res = await conn.query<ResultSetHeader>(
+        'INSERT INTO monitor SET ?',
+        d,
+      );
+      if (res[0].affectedRows === 0) {
+        throw new Error('添加监控单失败');
+      }
 
-    if (res2[0].affectedRows !== data.taskIds.length) {
-      throw new Error('添加监控任务关联表失败');
+      const mt = data.taskIds.map(id => {
+        return {
+          monitor_id: res[0].insertId,
+          task_id: id,
+        };
+      });
+
+      debug('mt:', mt);
+
+      const res2 = await conn.query<ResultSetHeader>(
+        'INSERT INTO monitor_task SET ?',
+        mt,
+      );
+      debug('affectedRows:', res2[0].affectedRows);
+
+      if (res2[0].affectedRows !== data.taskIds.length) {
+        throw new Error('添加监控任务关联表失败');
+      }
+
+      await conn.commit();
+
+      debug('insertId:', res[0].insertId);
+      return res[0].insertId;
+    } catch (error) {
+      await conn.rollback();
+      throw error;
     }
-
-    await conn.commit();
-
-    debug('insertId:', res[0].insertId);
-    return res[0].insertId;
   } catch (error) {
-    await conn.rollback();
     throw error;
   } finally {
-    conn.release();
+    conn?.release();
   }
 };
 
 export const updateMonitorById = async (data: IMonitorWithId) => {
-  const pool = getPool();
-  const [rows] = await pool.query<RowDataPacket[]>(
-    'SELECT * FROM monitor WHERE id = ?',
-    [data.id],
-  );
-  if (rows.length === 0) {
-    throw new Error('监控单不存在');
-  }
-  const d = {
-    name: data.name,
-    descr: data.descr,
-    task_ids: data.taskIds.join(','),
-    cron_time: data.cronTime,
-    task_flow: data.taskFlow,
-    update_time: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-  };
+  const conn = await getConn();
+  try {
+    const [rows] = await conn.query<RowDataPacket[]>(
+      'SELECT * FROM monitor WHERE id = ?',
+      [data.id],
+    );
+    if (rows.length === 0) {
+      throw new Error('监控单不存在');
+    }
+    const d = {
+      name: data.name,
+      descr: data.descr,
+      task_ids: data.taskIds.join(','),
+      cron_time: data.cronTime,
+      task_flow: data.taskFlow,
+      update_time: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+    };
 
-  debug('d:', d);
+    debug('d:', d);
 
-  const res = await pool.query<ResultSetHeader>(
-    'UPDATE monitor SET ? WHERE id = ?',
-    [d, data.id],
-  );
-  if (res[0].affectedRows === 0) {
-    throw new Error('更新监控单失败');
+    const res = await conn.query<ResultSetHeader>(
+      'UPDATE monitor SET ? WHERE id = ?',
+      [d, data.id],
+    );
+    if (res[0].affectedRows === 0) {
+      throw new Error('更新监控单失败');
+    }
+    return res[0].insertId;
+  } catch (error) {
+    throw error;
+  } finally {
+    conn?.release();
   }
-  return res[0].insertId;
 };
 
 export const getMonitorById = async (id: number) => {
-  const pool = getPool();
-  const [rows] = await pool.query<RowDataPacket[]>(
-    `SELECT 
-      m.id, 
-      m.name, 
-      m.descr, 
-      m.cron_time, 
-      m.status, 
-      m.task_flow, 
-      m.create_time, 
-      m.update_time,
-      m.next_time,
-      m.exec_total_num,
-      GROUP_CONCAT(t.id) as task_ids,
-      GROUP_CONCAT(t.name) as task_names
-    FROM monitor as m 
-    LEFT JOIN 
-      monitor_task as mt ON m.id = mt.monitor_id
-    LEFT JOIN
-      task as t ON mt.task_id = t.id
-    WHERE 
-      m.id = ? and m.status != 0 
-    GROUP BY 
-      m.id
-    `,
-    [id],
-  );
-  return rows.map(r => ({
-    id: r.id,
-    name: r.name,
-    descr: r.descr,
-    taskIds: r.task_ids.split(',').map(id => Number(id)),
-    taskNames: r.task_names.split(','),
-    cronTime: r.cron_time,
-    status: r.status,
-    taskFlow: r.task_flow,
-    createTime: dayjs(r.create_time).format('YYYY-MM-DD HH:mm:ss'),
-    updateTime: dayjs(r.update_time).format('YYYY-MM-DD HH:mm:ss'),
-    execTotalNum: r.exec_total_num,
-  }));
+  const conn = await getConn();
+  try {
+    const [rows] = await conn.query<RowDataPacket[]>(
+      `SELECT 
+        m.id, 
+        m.name, 
+        m.descr, 
+        m.cron_time, 
+        m.status, 
+        m.task_flow, 
+        m.create_time, 
+        m.update_time,
+        m.next_time,
+        m.exec_total_num,
+        GROUP_CONCAT(t.id) as task_ids,
+        GROUP_CONCAT(t.name) as task_names
+      FROM monitor as m 
+      LEFT JOIN 
+        monitor_task as mt ON m.id = mt.monitor_id
+      LEFT JOIN
+        task as t ON mt.task_id = t.id
+      WHERE 
+        m.id = ? and m.status != 0 
+      GROUP BY 
+        m.id
+      `,
+      [id],
+    );
+    return rows.map(r => ({
+      id: r.id,
+      name: r.name,
+      descr: r.descr,
+      taskIds: r.task_ids.split(',').map(id => Number(id)),
+      taskNames: r.task_names.split(','),
+      cronTime: r.cron_time,
+      status: r.status,
+      taskFlow: r.task_flow,
+      createTime: dayjs(r.create_time).format('YYYY-MM-DD HH:mm:ss'),
+      updateTime: dayjs(r.update_time).format('YYYY-MM-DD HH:mm:ss'),
+      execTotalNum: r.exec_total_num,
+    }));
+  } catch (error) {
+    throw error;
+  } finally {
+    conn?.release();
+  }
 };
 
 export const queryMonitorList = async (query: MyQueryContext['query']) => {
-  let conn: PoolConnection | null = null;
-  const pool = getPool();
-  conn = await pool.getConnection();
+  const conn = await getConn();
   try {
     // 查询总数
     const [totalRows] = await conn.query<RowDataPacket[]>(
@@ -252,14 +250,16 @@ export const queryMonitorList = async (query: MyQueryContext['query']) => {
 };
 
 export const deleteMonitorById = async (id: number) => {
-  return await modifyMonitorField(id, 0);
+  return await modifyTableField({
+    id,
+    value: 0,
+    field: 'status',
+    table: 'monitor',
+  });
 };
 
 export const execMonitorById = async (ctx: MyContext, id: number) => {
-  let conn: PoolConnection | null = null;
-  const pool = getPool();
-  conn = await pool.getConnection();
-
+  const conn = await getConn();
   try {
     if (ctx.cronMap?.has(id)) {
       throw new Error('监控单任务已存在');
@@ -318,10 +318,16 @@ export const execMonitorById = async (ctx: MyContext, id: number) => {
     const job = CronJob.from({
       cronTime,
       onTick: async () => {
-        const conn2 = await pool.getConnection();
+        const conn2 = await getConn();
         try {
           // 更新任务状态为正在执行
-          await modifyMonitorField(id, 2, conn2);
+          await modifyTableField({
+            id,
+            value: 2,
+            conn: conn2,
+            field: 'status',
+            table: 'monitor',
+          });
           // 执行任务
           const startTime = dayjs();
           let result: ITaskField[] = [];
@@ -366,7 +372,13 @@ export const execMonitorById = async (ctx: MyContext, id: number) => {
           ).format('YYYY-MM-DD HH:mm:ss');
           debug('next date:', date);
 
-          await modifyMonitorField(id, date, conn, 'next_time');
+          await modifyTableField({
+            id,
+            value: date,
+            conn,
+            field: 'next_time',
+            table: 'monitor',
+          });
         } catch (error) {
           debug(error);
         } finally {
@@ -383,7 +395,13 @@ export const execMonitorById = async (ctx: MyContext, id: number) => {
     );
 
     debug('date:', date);
-    await modifyMonitorField(id, date, conn, 'next_time');
+    await modifyTableField({
+      id,
+      value: date,
+      conn,
+      field: 'next_time',
+      table: 'monitor',
+    });
 
     if (!ctx.cronMap) {
       ctx.cronMap = new Map<number, CronJob>();
@@ -397,17 +415,14 @@ export const execMonitorById = async (ctx: MyContext, id: number) => {
       ctx.cronMap.set(id, job);
     }
   } catch (error) {
-    debug(error);
-    throw new Error(error);
+    throw error;
   } finally {
     conn.release();
   }
 };
 
 export const stopMonitorById = async (ctx: MyContext, id: number) => {
-  let conn: PoolConnection | null = null;
-  const pool = getPool();
-  conn = await pool.getConnection();
+  const conn = await getConn();
 
   try {
     const [rows] = await conn.query<RowDataPacket[]>(
@@ -426,10 +441,15 @@ export const stopMonitorById = async (ctx: MyContext, id: number) => {
       ctx.cronMap.delete(id);
     }
     // 更新任务状态为正在执行
-    await modifyMonitorField(id, 1, conn);
+    await modifyTableField({
+      id,
+      value: 1,
+      conn,
+      field: 'status',
+      table: 'monitor',
+    });
   } catch (error) {
-    debug(error);
-    throw new Error(error);
+    throw error;
   } finally {
     conn.release();
   }
@@ -451,9 +471,7 @@ export const stopAllMonitor = async (ctx: MyContext) => {
 };
 
 export const getMonitorRecord = async (query: MyQueryContext['query']) => {
-  let conn: PoolConnection | null = null;
-  const pool = getPool();
-  conn = await pool.getConnection();
+  const conn = await getConn();
 
   try {
     // 查询总数

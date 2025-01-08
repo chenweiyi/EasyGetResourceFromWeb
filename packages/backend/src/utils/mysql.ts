@@ -27,4 +27,9 @@ const getPool = () => {
   return poolMap.get('pool');
 };
 
-export { createMysqlPool, getPool };
+const getConn = async () => {
+  const pool = getPool();
+  return await pool.getConnection();
+};
+
+export { createMysqlPool, getPool, getConn };

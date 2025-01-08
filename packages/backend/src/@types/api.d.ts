@@ -7,7 +7,7 @@ interface MyContext extends Context {
 
 interface MyQueryContext extends Context {
   query: {
-    current: number;
-    pageSize: number;
+    current: string;
+    pageSize: string;
   };
 }

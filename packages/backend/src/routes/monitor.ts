@@ -1,5 +1,5 @@
 import RouterEngine from '@koa/router';
-import MonitorController from '../controller/monitor.mjs';
+import MonitorController from '../controller/monitor';
 import { MyContext, MyQueryContext } from '../@types/api';
 
 const genMonitorRoute = (router: RouterEngine) => {

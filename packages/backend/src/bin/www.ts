@@ -3,9 +3,9 @@ import 'dotenv/config';
 import debugLibrary from 'debug';
 import http from 'http';
 
-import '../utils/abortControllerPolyfill.mjs';
-import '../utils/fetchPolyfill.mjs';
-import app from '../app.mjs';
+// import '../utils/abortControllerPolyfill';
+// import '../utils/fetchPolyfill';
+import app from '../app';
 
 const debug = debugLibrary('crawler');
 

@@ -12,7 +12,7 @@ import {
   updateMonitorById,
   type IMonitorType,
   type IMonitorWithId,
-} from '../service/monitor.mjs';
+} from '../service/monitor';
 import { MyContext, MyQueryContext } from '../@types/api';
 
 const debug = debugLibrary('monitor:controller');

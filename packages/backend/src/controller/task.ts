@@ -10,7 +10,7 @@ import {
   ITaskWithId,
   queryTaskList,
   updateTaskById,
-} from '../service/task.mjs';
+} from '../service/task';
 import debugLibrary from 'debug';
 
 const debug = debugLibrary('task:controller');

@@ -1,12 +1,12 @@
 {
   "ts-node": {
     "transpileOnly": true,
-    "esm": true
+    "esm": true,
+    "experimentalSpecifierResolution": "node"
   },
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",
-    "rootDir": "./src",
     "moduleResolution": "node",
     "outDir": "./build",
     "allowSyntheticDefaultImports": true,
@@ -25,6 +25,6 @@
     "scripts",
     "tsconfig.json",
     "front",
-    "./src/copyStatic.mjs"
+    "src/copyStatic.js"
   ]
 }

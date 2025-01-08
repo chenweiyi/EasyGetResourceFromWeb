@@ -1,5 +1,5 @@
 import RouterEngine from '@koa/router';
-import TaskController from '../controller/task.mjs';
+import TaskController from '../controller/task';
 
 const genTaskRoute = (router: RouterEngine) => {
   router.get('/task/record/list', TaskController.getTaskRecord);

@@ -9,9 +9,9 @@ import logger from 'koa-logger';
 import onerror from 'koa-onerror';
 import serve from 'koa-static';
 import path from 'path';
-import conditional from './utils/koa-conditional-get.mjs';
-import { cronMap } from './crawler/cronInstance.mjs';
-import { router } from './routes/index.mjs';
+import conditional from './utils/koa-conditional-get';
+import { cronMap } from './crawler/cronInstance';
+import { router } from './routes/index';
 import { MyContext } from './@types/api';
 
 const debug = debugLibrary('app');

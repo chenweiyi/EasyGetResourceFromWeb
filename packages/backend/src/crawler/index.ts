@@ -1,7 +1,7 @@
 import { chromium } from 'playwright';
 import 'dotenv/config';
 import debugLibrary from 'debug';
-import { type ITaskField } from '../service/task.mjs';
+import { type ITaskField } from '../service/task';
 import * as cheerio from 'cheerio';
 
 const debug = debugLibrary('crawler');

@@ -1,6 +1,6 @@
 import RouterEngine from '@koa/router';
-import { genTaskRoute } from './task.mjs';
-import { genMonitorRoute } from './monitor.mjs';
+import { genTaskRoute } from './task';
+import { genMonitorRoute } from './monitor';
 
 const router = new RouterEngine();
 router.prefix('/q');

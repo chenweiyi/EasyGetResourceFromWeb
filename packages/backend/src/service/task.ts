@@ -1,8 +1,8 @@
 import { PoolConnection, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
-import { getPool } from '../utils/mysql.mjs';
+import { getPool } from '../utils/mysql';
 import debugLibrary from 'debug';
 import dayjs from 'dayjs';
-import { crawler, type ICrawlerOptions } from '../crawler/index.mjs';
+import { crawler, type ICrawlerOptions } from '../crawler/index';
 
 const debug = debugLibrary('task:service');
 

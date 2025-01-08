@@ -105,9 +105,9 @@ declare global {
   export type { FormInstance } from 'element-plus'
   import('element-plus')
   // @ts-ignore
-  export type { IMonitorType, IMonitorWithId, IMonitorData, IMonitorRecord } from './src/api/monitor'
+  export type { IMonitorType, IMonitorWithId, IMonitorData, IMonitorListData, IMonitorRecord } from './src/api/monitor'
   import('./src/api/monitor')
   // @ts-ignore
-  export type { ITaskType, ITaskData, ITaskWithId, ITaskField, ITaskRecord } from './src/api/task'
+  export type { ITaskType, ITaskData, ITaskListData, ITaskWithId, ITaskField, ITaskRecord, ITaskRecordData } from './src/api/task'
   import('./src/api/task')
 }

@@ -16,10 +16,10 @@ import debugLibrary from 'debug';
 const debug = debugLibrary('task:controller');
 export default class TaskController {
   public static async getTaskRecord(ctx: Koa.Context) {
-    debug('getTaskRecord...');
+    const query = ctx.query;
+    debug('query:', query);
     try {
-      const res = await getTaskRecord();
-      debug('getTaskRecord res:', res);
+      const res = await getTaskRecord(query as unknown as IQueryCommonParams);
       ctx.status = 200;
       ctx.body = {
         code: 0,
@@ -27,6 +27,7 @@ export default class TaskController {
         data: res,
       };
     } catch (error) {
+      debug(error);
       ctx.status = 200;
       ctx.body = {
         code: 500,
@@ -37,8 +38,9 @@ export default class TaskController {
 
   public static async getTaskList(ctx: Koa.Context) {
     try {
-      const res = await queryTaskList();
-      debug('getTaskList res:', res);
+      const query = ctx.query;
+      debug('query:', query);
+      const res = await queryTaskList(query as unknown as IQueryCommonParams);
       ctx.status = 200;
       ctx.body = {
         code: 0,
@@ -46,6 +48,7 @@ export default class TaskController {
         data: res,
       };
     } catch (error) {
+      debug(error);
       ctx.status = 200;
       ctx.body = {
         code: 500,

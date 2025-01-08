@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import TaskNew from '@/views/task/new.vue';
 import JsonViewer from '@/components/JsonViewer.vue';
+import type { ITaskData } from '@/api/task';
 
-type ITaskDataWithLoading = ITaskData & {
-  loading: boolean;
-};
-
-const taskData = ref<ITaskDataWithLoading[]>([]);
+const taskData = ref<ITaskData[]>([]);
 const loading = ref(false);
 const selectRow = ref<ITaskData>();
 const visible = ref(false);
+const total = ref(0);
+const current = ref(1);
+const pageSize = ref(10);
 
-const startTask = async (row: ITaskDataWithLoading) => {
+const startTask = async (row: ITaskData) => {
   if (row.status === 0) {
     ElMessage.error('任务已删除');
     return;
@@ -21,21 +21,20 @@ const startTask = async (row: ITaskDataWithLoading) => {
     return;
   }
   try {
-    row.loading = true;
+    row.status = 3;
     await execTaskById(row.id);
+    await query();
   } catch (error) {
     console.error(error);
-  } finally {
-    row.loading = false;
   }
 };
 
-const editTask = (row: ITaskDataWithLoading) => {
+const editTask = (row: ITaskData) => {
   selectRow.value = row;
   visible.value = true;
 };
 
-const copyTask = async (row: ITaskDataWithLoading) => {
+const copyTask = async (row: ITaskData) => {
   try {
     await copyTaskById(row.id);
     await query();
@@ -44,7 +43,7 @@ const copyTask = async (row: ITaskDataWithLoading) => {
   }
 };
 
-const deleteTask = (row: ITaskDataWithLoading) => {
+const deleteTask = (row: ITaskData) => {
   ElMessageBox.confirm(`确认删除任务「${row.name}」吗？`, '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
@@ -71,11 +70,12 @@ const seeCode = (code?: string) => {
 const query = async () => {
   try {
     loading.value = true;
-    const data = await getTaskList();
-    taskData.value = data.map(d => ({
-      ...d,
-      loading: false,
-    }));
+    const data = await getTaskList({
+      current: current.value,
+      pageSize: pageSize.value,
+    });
+    taskData.value = data.list;
+    total.value = data.total;
   } catch (error) {
     console.error(error);
   } finally {
@@ -92,6 +92,8 @@ const closeModal = () => {
 onMounted(() => {
   query();
 });
+
+watch(() => [pageSize.value, current.value], query);
 </script>
 
 <template>
@@ -101,11 +103,20 @@ onMounted(() => {
         <template #default="scope">
           <div class="px-20px py-10px bg-slate-50">
             <el-form label-width="106px">
+              <el-form-item label="爬取地址">
+                {{ scope.row.url }}
+              </el-form-item>
+              <el-form-item label="描述信息">
+                {{ scope.row.descr }}
+              </el-form-item>
               <el-form-item label="创建时间">
                 {{ scope.row.createTime }}
               </el-form-item>
               <el-form-item label="最大重试次数">
                 {{ scope.row.retryNum }}
+              </el-form-item>
+              <el-form-item label="执行总次数">
+                {{ scope.row.execTotalNum }}
               </el-form-item>
               <el-form-item label="字段设置">
                 <el-table :data="scope.row.fields">
@@ -152,7 +163,6 @@ onMounted(() => {
         width="150"
         show-overflow-tooltip
       />
-      <el-table-column prop="url" label="爬取地址" show-overflow-tooltip />
       <el-table-column prop="status" label="状态" width="100">
         <template #default="scope">
           <el-tooltip
@@ -199,13 +209,14 @@ onMounted(() => {
         </template>
       </el-table-column>
       <el-table-column prop="updateTime" label="更新时间" width="180" />
+      <el-table-column prop="lastExecTime" label="最近执行时间" width="180" />
       <el-table-column label="操作" width="300">
         <template #default="scope">
           <el-button
             type="success"
             size="small"
-            :loading="scope.row.loading"
-            :disabled="scope.row.loading"
+            :loading="scope.row.status === 3"
+            :disabled="scope.row.status === 3"
             @click="startTask(scope.row)"
           >
             启动
@@ -222,6 +233,11 @@ onMounted(() => {
         </template>
       </el-table-column>
     </el-table>
+    <my-pagination
+      :total="total"
+      v-model:current="current"
+      v-model:page-size="pageSize"
+    />
     <el-dialog
       v-model="visible"
       title="编辑任务"
@@ -229,7 +245,12 @@ onMounted(() => {
       :close-on-click-modal="false"
       :destroy-on-close="true"
     >
-      <TaskNew v-if="selectRow" :id="selectRow.id" @close="closeModal" />
+      <TaskNew
+        v-if="selectRow"
+        :id="selectRow.id"
+        @close="closeModal"
+        @updated="query()"
+      />
     </el-dialog>
   </div>
 </template>

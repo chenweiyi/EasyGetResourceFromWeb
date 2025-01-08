@@ -4,6 +4,9 @@ import JsonViewer from '@/components/JsonViewer.vue';
 
 const loading = ref(false);
 const data = ref<IMonitorRecord[]>([]);
+const total = ref(0);
+const current = ref(1);
+const pageSize = ref(10);
 
 const getStatus = (status: number) => {
   switch (status) {
@@ -35,9 +38,13 @@ const seeDetial = (result: string) => {
 const query = async () => {
   try {
     loading.value = true;
-    const res = await getMonitorRecord();
+    const res = await getMonitorRecord({
+      current: current.value,
+      pageSize: pageSize.value,
+    });
     console.log('res:', res);
-    data.value = res;
+    data.value = res.list;
+    total.value = res.total;
   } catch (error) {
     console.error(error);
   } finally {
@@ -48,6 +55,8 @@ const query = async () => {
 onMounted(() => {
   query();
 });
+
+watch(() => [pageSize.value, current.value], query);
 </script>
 
 <template>
@@ -88,6 +97,11 @@ onMounted(() => {
         </template>
       </el-table-column>
     </el-table>
+    <my-pagination
+      :total="total"
+      v-model:current="current"
+      v-model:page-size="pageSize"
+    />
   </div>
 </template>
 

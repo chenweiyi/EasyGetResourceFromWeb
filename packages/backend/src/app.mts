@@ -10,17 +10,11 @@ import onerror from 'koa-onerror';
 import serve from 'koa-static';
 import path from 'path';
 import conditional from './utils/koa-conditional-get.mjs';
-import { CronJob } from 'cron';
 import { cronMap } from './crawler/cronInstance.mjs';
-
-import { router as task } from './routes/task.mjs';
-import { router as monitor } from './routes/monitor.mjs';
+import { router } from './routes/index.mjs';
+import { MyContext } from './@types/api';
 
 const debug = debugLibrary('app');
-
-export interface MyContext extends Koa.Context {
-  cronMap: Map<number, CronJob>;
-}
 
 let app = new Koa<any, MyContext>();
 app.context.cronMap = cronMap;
@@ -44,9 +38,9 @@ app.use(
 app.use(json());
 app.use(logger());
 
-app.use(async (ctx, next) => {
-  await next();
-});
+// app.use(async (ctx, next) => {
+//   await next();
+// });
 
 app.use(history());
 
@@ -59,12 +53,15 @@ app.use(conditional());
 app.use(etag());
 
 // logger
-app.use(async (ctx, next) => {
-  const start = new Date().getTime();
-  await next();
-  const ms = new Date().getTime() - start;
-  debug(`${ctx.method} ${ctx.url} - ${ms}ms`);
-});
+// app.use(async (ctx, next) => {
+//   const start = new Date().getTime();
+//   await next();
+//   const ms = new Date().getTime() - start;
+//   debug(`${ctx.method} ${ctx.url} - ${ms}ms`);
+// });
+
+// routes
+app.use(router.routes()).use(router.allowedMethods());
 
 app.use(
   serve(path.resolve('..', 'frontend/dist'), {
@@ -79,10 +76,6 @@ app.use(
     },
   }),
 );
-
-// routes
-app.use(task.routes()).use(task.allowedMethods());
-app.use(monitor.routes()).use(monitor.allowedMethods());
 
 // error-handling
 app.on('error', (err, ctx) => {

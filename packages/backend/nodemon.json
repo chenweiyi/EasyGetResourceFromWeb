@@ -2,7 +2,7 @@
   "delay": 1000,
   "verbose": true,
   "colours": true,
-  "watch": ["./src", "./package.json", "./tsconfig.json"],
+  "watch": ["./src", "./package.json", "./tsconfig.json", ".env"],
   "ignore": ["./src/@types", "node_modules"],
   "execMap": {
     "ts": "ts-node",

@@ -17,6 +17,12 @@ export type IMonitorData = IMonitorType & {
   createTime: string;
   updateTime: string;
   nextTime: string;
+  execTotalNum: number;
+};
+
+export type IMonitorListData = {
+  list: IMonitorData[];
+  total: number;
 };
 
 export type IMonitorRecord = {
@@ -29,6 +35,11 @@ export type IMonitorRecord = {
   result: string;
   taskIds: number[];
   taskNames: string[];
+};
+
+export type IMonitorRecordData = {
+  list: IMonitorRecord[];
+  total: number;
 };
 
 export const addNewMonitor: (data: IMonitorType) => Promise<null> = data => {
@@ -56,10 +67,13 @@ export const getMonitorById: (id: number) => Promise<IMonitorData[]> = id => {
   });
 };
 
-export const getMonitorList: () => Promise<IMonitorData[]> = () => {
+export const getMonitorList: (
+  params: IQueryCommonParams,
+) => Promise<IMonitorListData> = params => {
   return axios({
     url: '/monitor/list',
     method: 'get',
+    params,
   });
 };
 
@@ -84,9 +98,12 @@ export const stopMonitorById: (id: number) => Promise<null> = (id: number) => {
   });
 };
 
-export const getMonitorRecord: () => Promise<IMonitorRecord[]> = () => {
+export const getMonitorRecord: (
+  params: IQueryCommonParams,
+) => Promise<IMonitorRecordData> = params => {
   return axios({
     url: '/monitor/record/list',
     method: 'get',
+    params,
   });
 };

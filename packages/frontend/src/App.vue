@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import spider from '@/assets/spider.png';
 import { routes } from '@/router';
+import zhCn from 'element-plus/es/locale/lang/zh-cn';
 
 type IMenu = {
   title: string;
@@ -47,42 +48,44 @@ watch(
 </script>
 
 <template>
-  <div class="common-layout">
-    <el-container>
-      <el-header class="common-header">
-        <div class="w-1200px h-full flex items-center">
-          <div class="h-full flex items-center">
-            <img
-              :src="spider"
-              alt=""
-              class="w-36px h-36px mr-8px transition rotate-20"
-            />
-            <span class="text-18px">Data Platform</span>
-            <span class="separator"></span>
+  <el-config-provider :locale="zhCn">
+    <div class="common-layout">
+      <el-container>
+        <el-header class="common-header">
+          <div class="w-1200px h-full flex items-center">
+            <div class="h-full flex items-center">
+              <img
+                :src="spider"
+                alt=""
+                class="w-36px h-36px mr-8px transition rotate-20"
+              />
+              <span class="text-18px">Data Platform</span>
+              <span class="separator"></span>
+            </div>
+            <div class="common-menus">
+              <ul class="menus">
+                <li
+                  v-for="menu in menus"
+                  :key="menu.name"
+                  class="menu-item"
+                  :class="[menu.name === active ? 'active' : '']"
+                  @click="clickMenu(menu)"
+                >
+                  <component :is="menu.icon"></component>
+                  <span class="ml-8px">{{ menu.title }}</span>
+                </li>
+              </ul>
+            </div>
           </div>
-          <div class="common-menus">
-            <ul class="menus">
-              <li
-                v-for="menu in menus"
-                :key="menu.name"
-                class="menu-item"
-                :class="[menu.name === active ? 'active' : '']"
-                @click="clickMenu(menu)"
-              >
-                <component :is="menu.icon"></component>
-                <span class="ml-8px">{{ menu.title }}</span>
-              </li>
-            </ul>
+        </el-header>
+        <el-main class="flex justify-center">
+          <div class="w-1200px">
+            <RouterView />
           </div>
-        </div>
-      </el-header>
-      <el-main class="flex justify-center">
-        <div class="w-1200px">
-          <RouterView />
-        </div>
-      </el-main>
-    </el-container>
-  </div>
+        </el-main>
+      </el-container>
+    </div>
+  </el-config-provider>
 </template>
 
 <style scoped lang="less">

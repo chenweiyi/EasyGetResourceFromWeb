@@ -68,7 +68,6 @@ const crawler = async (crawlerOptions: ICrawlerOptions, pre?: ITaskField[]) => {
   }
 
   await browser.close();
-  debug('result:', result);
   return result;
 };
 

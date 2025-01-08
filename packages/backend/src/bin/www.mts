@@ -1,26 +1,13 @@
 #!/usr/bin/env node
-
-/**
- * Module dependencies.
- */
-import * as dotenv from 'dotenv';
+import 'dotenv/config';
 import debugLibrary from 'debug';
 import http from 'http';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
 
 import '../utils/abortControllerPolyfill.mjs';
 import '../utils/fetchPolyfill.mjs';
 import app from '../app.mjs';
 
-const debug = debugLibrary('server');
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const config = dotenv.config({
-  path: resolve(__dirname, '../..', '.env'),
-});
-
-debug('config', config);
+const debug = debugLibrary('crawler');
 
 /**
  * Get port from environment and store in Express.

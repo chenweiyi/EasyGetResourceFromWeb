@@ -14,6 +14,13 @@ export type ITaskData = ITaskType & {
   status: number;
   createTime: string;
   updateTime: string;
+  execTotalNum: number;
+  lastExecTime: string;
+};
+
+export type ITaskListData = {
+  list: ITaskData[];
+  total: number;
 };
 
 export type ITaskWithId = ITaskType & {
@@ -40,6 +47,11 @@ export type ITaskRecord = {
   execTime: number;
   execNum: number;
   result: string;
+};
+
+export type ITaskRecordData = {
+  total: number;
+  list: ITaskRecord[];
 };
 
 /**
@@ -87,10 +99,13 @@ export const copyTaskById: (id: number | string) => Promise<null> = id => {
 /**
  * 获取任务列表
  */
-export const getTaskList: () => Promise<ITaskData[]> = () => {
+export const getTaskList: (
+  params: IQueryCommonParams,
+) => Promise<ITaskListData> = params => {
   return axios({
     url: '/task/list',
     method: 'get',
+    params,
   });
 };
 
@@ -123,9 +138,12 @@ export const execTaskById: (
   });
 };
 
-export const getTaskRecord: () => Promise<ITaskRecord[]> = () => {
+export const getTaskRecord: (
+  params: IQueryCommonParams,
+) => Promise<ITaskRecordData> = params => {
   return axios({
     url: '/task/record/list',
     method: 'get',
+    params,
   });
 };

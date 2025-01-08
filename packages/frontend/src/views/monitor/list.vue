@@ -6,6 +6,9 @@ const loading = ref(false);
 const selectRow = ref<IMonitorData>();
 const visible = ref(false);
 const btnLoading = ref(false);
+const total = ref(0);
+const current = ref(1);
+const pageSize = ref(10);
 
 const startMonitor = async (row: IMonitorData) => {
   if (row.status === 0) {
@@ -77,8 +80,12 @@ const deleteMonitor = (row: IMonitorData) => {
 const query = async () => {
   try {
     loading.value = true;
-    const data = await getMonitorList();
-    taskData.value = data;
+    const data = await getMonitorList({
+      current: current.value,
+      pageSize: pageSize.value,
+    });
+    taskData.value = data.list;
+    total.value = data.total;
   } catch (error) {
     console.error(error);
   } finally {
@@ -95,6 +102,8 @@ const closeModal = () => {
 onMounted(() => {
   query();
 });
+
+watch(() => [pageSize.value, current.value], query);
 </script>
 
 <template>
@@ -112,6 +121,9 @@ onMounted(() => {
               </el-form-item>
               <el-form-item label="描述信息">
                 {{ scope.row.descr }}
+              </el-form-item>
+              <el-form-item label="执行次数">
+                {{ scope.row.execTotalNum }}
               </el-form-item>
               <el-form-item label="任务流程">
                 {{ scope.row.taskFlow }}
@@ -195,6 +207,11 @@ onMounted(() => {
         </template>
       </el-table-column>
     </el-table>
+    <my-pagination
+      :total="total"
+      v-model:current="current"
+      v-model:page-size="pageSize"
+    />
     <el-dialog
       v-model="visible"
       title="编辑监控单"

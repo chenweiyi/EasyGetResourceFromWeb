@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "nodemon ./src/bin/www.mts",
     "grab": "ts-node ./tests/grab.mts",
-    "debug": "cross-env DEBUG=* nodemon ./src/bin/www.mts",
-    "start": "cross-env DEBUG=\"server,app,vendor,service:*,controller:*\" ts-node ./src/bin/www.mts",
+    "debug": "nodemon ./src/bin/www.mts",
+    "start": "cross-env ts-node ./src/bin/www.mts",
     "test": "echo \"Error: no test specified\" && exit 1",
     "clean": "rm -rf ./build",
     "build-ts": "tsc",

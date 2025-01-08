@@ -3,9 +3,9 @@ const props = defineProps<{
   id?: number;
 }>();
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'updated']);
 
-const form = ref<ITaskType>({
+const form = ref<ITaskType & { execTotalNum?: number }>({
   name: '',
   url: '',
   enableProxy: 0,
@@ -82,6 +82,7 @@ const submit = async () => {
             retryNum: form.value.retryNum == null ? 2 : +form.value.retryNum,
           });
           ElMessage.success('更新成功');
+          emit('updated');
           emit('close');
         } else {
           await addNewTask({
@@ -137,7 +138,11 @@ onMounted(() => {
       <el-button type="primary" :disabled="loading" @click="submit">{{
         props.id ? '更新' : '添加'
       }}</el-button>
-      <el-button type="danger" :disabled="loading" @click="reset"
+      <el-button
+        type="danger"
+        :disabled="loading"
+        @click="reset"
+        v-if="!props.id"
         >重置</el-button
       >
     </div>
@@ -156,7 +161,19 @@ onMounted(() => {
           <el-input v-model="form.descr" placeholder="请输入任务描述" />
         </el-form-item>
         <el-form-item label="爬取地址" class="w-400px" prop="url">
-          <el-input v-model="form.url" placeholder="请输入爬取地址" />
+          <template #label>
+            <div class="flex items-center">
+              <span class="mr-4px">爬取地址</span>
+              <el-tooltip content="执行后不允许修改" placement="top">
+                <i-ep-info-filled class="text-gray-400 w-16px h-16px" />
+              </el-tooltip>
+            </div>
+          </template>
+          <el-input
+            v-model="form.url"
+            placeholder="请输入爬取地址"
+            :disabled="!!props.id && form.execTotalNum! > 0"
+          />
         </el-form-item>
         <el-form-item label="最大重试次数" class="w-400px" prop="retryNum">
           <el-input
@@ -171,7 +188,15 @@ onMounted(() => {
             <el-radio :value="1">是</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="字段设置" prop="fields">
+        <el-form-item label="字段设置" prop="fields" class="special-field">
+          <template #label>
+            <div class="flex items-center">
+              <span class="mr-4px">字段设置</span>
+              <el-tooltip content="执行后不允许修改" placement="top">
+                <i-ep-info-filled class="text-gray-400 w-16px h-16px" />
+              </el-tooltip>
+            </div>
+          </template>
           <el-table class="my-table" :data="form.fields">
             <el-table-column
               prop="key"
@@ -327,6 +352,10 @@ onMounted(() => {
           >
             添加字段
           </el-button>
+          <div
+            v-if="props.id && form.execTotalNum! > 0"
+            class="absolute z-10 w-full h-full bg-[rgba(0,0,0,0.5)] hover:cursor-not-allowed"
+          ></div>
         </el-form-item>
       </el-form>
     </div>
@@ -344,6 +373,12 @@ onMounted(() => {
   :deep(.el-table__body .cell .el-form-item),
   :deep(.el-table__body .cell .el-button) {
     margin-top: 20px;
+  }
+}
+
+.special-field {
+  :deep(.el-form-item__content) {
+    position: relative;
   }
 }
 </style>

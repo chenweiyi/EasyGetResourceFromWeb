@@ -5,7 +5,7 @@ const props = defineProps<{
 
 const emit = defineEmits(['close']);
 
-const form = ref<IMonitorType>({
+const form = ref<IMonitorType & { execTotalNum?: number }>({
   name: '',
   descr: '',
   taskIds: [],
@@ -26,7 +26,11 @@ const tasks = ref<ITaskData[]>([]);
 
 const getTasks = async () => {
   try {
-    tasks.value = await getTaskList();
+    const res = await getTaskList({
+      current: 1,
+      pageSize: 1000,
+    });
+    tasks.value = res.list;
   } catch (error) {
     console.error(error);
     tasks.value = [];
@@ -141,7 +145,7 @@ onMounted(async () => {
           <template #label>
             <div class="flex items-center">
               <span class="mr-4px">选择任务</span>
-              <el-tooltip content="慎重，保存后不允许修改" placement="top">
+              <el-tooltip content="执行后不允许修改" placement="top">
                 <i-ep-info-filled class="text-gray-400 w-16px h-16px" />
               </el-tooltip>
             </div>
@@ -151,7 +155,7 @@ onMounted(async () => {
             placeholder="请选择任务"
             clearable
             multiple
-            :disabled="!!props.id"
+            :disabled="!!props.id && form.execTotalNum! > 0"
           >
             <el-option
               v-for="item in tasks"
@@ -168,7 +172,7 @@ onMounted(async () => {
           <template #label>
             <div class="flex items-center">
               <span class="mr-4px">任务流程</span>
-              <el-tooltip content="慎重，保存后不允许修改" placement="top">
+              <el-tooltip content="执行后不允许修改" placement="top">
                 <i-ep-info-filled class="text-gray-400 w-16px h-16px" />
               </el-tooltip>
             </div>
@@ -176,7 +180,7 @@ onMounted(async () => {
           <el-input
             v-model="form.taskFlow"
             placeholder="[1,2,3]表示任务1,2,3串行执行；[1,[2,3],4]表示任务1,[2,3],4串行执行，任务2,3并行执行"
-            :disabled="!!props.id"
+            :disabled="!!props.id && form.execTotalNum! > 0"
           />
         </el-form-item>
         <el-form-item label="执行时间" class="w-700px" prop="cronTime">

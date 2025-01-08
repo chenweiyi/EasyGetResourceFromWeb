@@ -13,7 +13,7 @@ import {
   type IMonitorType,
   type IMonitorWithId,
 } from '../service/monitor.mjs';
-import { type MyContext } from '../app.mjs';
+import { MyContext, MyQueryContext } from '../@types/api';
 
 const debug = debugLibrary('monitor:controller');
 
@@ -23,7 +23,6 @@ export default class TaskController {
     debug('body:', body);
     try {
       const id = await addNewMonitor(body);
-      debug('id:', id);
       ctx.status = 200;
       ctx.body = {
         code: 0,
@@ -31,6 +30,7 @@ export default class TaskController {
         data: id,
       };
     } catch (error) {
+      debug(error);
       ctx.status = 200;
       ctx.body = {
         code: 500,
@@ -47,7 +47,6 @@ export default class TaskController {
         ...body,
         id: +body.id,
       });
-      debug('res:', res);
       ctx.status = 200;
       ctx.body = {
         code: 0,
@@ -55,6 +54,7 @@ export default class TaskController {
         data: res,
       };
     } catch (error) {
+      debug(error);
       ctx.status = 200;
       ctx.body = {
         code: 500,
@@ -68,7 +68,6 @@ export default class TaskController {
     debug('id:', id);
     try {
       const res = await getMonitorById(+id);
-      debug('res:', res);
       ctx.status = 200;
       ctx.body = {
         code: 0,
@@ -76,6 +75,7 @@ export default class TaskController {
         data: res,
       };
     } catch (error) {
+      debug(error);
       ctx.status = 200;
       ctx.body = {
         code: 500,
@@ -84,10 +84,11 @@ export default class TaskController {
     }
   }
 
-  public static async getMonitorList(ctx: Koa.Context) {
+  public static async getMonitorList(ctx: MyQueryContext) {
     try {
-      const res = await queryMonitorList();
-      debug('getMonitorList res:', res);
+      const query = ctx.query;
+      debug('query:', query);
+      const res = await queryMonitorList(query);
       ctx.status = 200;
       ctx.body = {
         code: 0,
@@ -95,6 +96,7 @@ export default class TaskController {
         data: res,
       };
     } catch (error) {
+      debug(error);
       ctx.status = 200;
       ctx.body = {
         code: 500,
@@ -114,6 +116,7 @@ export default class TaskController {
         msg: 'success',
       };
     } catch (error) {
+      debug(error);
       ctx.status = 200;
       ctx.body = {
         code: 500,
@@ -133,6 +136,7 @@ export default class TaskController {
         msg: 'success',
       };
     } catch (error) {
+      debug(error);
       ctx.status = 200;
       ctx.body = {
         code: 500,
@@ -152,6 +156,7 @@ export default class TaskController {
         msg: 'success',
       };
     } catch (error) {
+      debug(error);
       ctx.status = 200;
       ctx.body = {
         code: 500,
@@ -169,6 +174,7 @@ export default class TaskController {
         msg: 'success',
       };
     } catch (error) {
+      debug(error);
       ctx.status = 200;
       ctx.body = {
         code: 500,
@@ -177,11 +183,11 @@ export default class TaskController {
     }
   }
 
-  public static async getMonitorRecord(ctx) {
-    debug('getMonitorRecord...');
+  public static async getMonitorRecord(ctx: MyQueryContext) {
     try {
-      const res = await getMonitorRecord();
-      debug('getMonitorRecord res:', res);
+      const query = ctx.query;
+      debug('query:', query);
+      const res = await getMonitorRecord(query);
       ctx.status = 200;
       ctx.body = {
         code: 0,
@@ -189,6 +195,7 @@ export default class TaskController {
         data: res,
       };
     } catch (error) {
+      debug(error);
       ctx.status = 200;
       ctx.body = {
         code: 500,

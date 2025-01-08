@@ -1,4 +1,3 @@
-import { type Context } from 'koa';
 import { PoolConnection, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import { getPool } from '../utils/mysql.mjs';
 import debugLibrary from 'debug';
@@ -6,7 +5,7 @@ import dayjs from 'dayjs';
 import { crawlerPatch, IPatchCrawlerOptions } from '../crawler/index.mjs';
 import { type ITaskField } from './task.mjs';
 import { CronJob } from 'cron';
-import { type MyContext } from '../app.mjs';
+import { MyContext, MyQueryContext } from '../@types/api';
 
 const debug = debugLibrary('monitor:service');
 
@@ -147,6 +146,7 @@ export const getMonitorById = async (id: number) => {
       m.create_time, 
       m.update_time,
       m.next_time,
+      m.exec_total_num,
       GROUP_CONCAT(t.id) as task_ids,
       GROUP_CONCAT(t.name) as task_names
     FROM monitor as m 
@@ -172,13 +172,34 @@ export const getMonitorById = async (id: number) => {
     taskFlow: r.task_flow,
     createTime: dayjs(r.create_time).format('YYYY-MM-DD HH:mm:ss'),
     updateTime: dayjs(r.update_time).format('YYYY-MM-DD HH:mm:ss'),
+    execTotalNum: r.exec_total_num,
   }));
 };
 
-export const queryMonitorList = async () => {
+export const queryMonitorList = async (query: MyQueryContext['query']) => {
+  let conn: PoolConnection | null = null;
   const pool = getPool();
-  const [rows] = await pool.query<RowDataPacket[]>(
-    `SELECT 
+  conn = await pool.getConnection();
+  try {
+    // 查询总数
+    const [totalRows] = await conn.query<RowDataPacket[]>(
+      `SELECT 
+        m.id, COUNT(*) as total 
+      FROM 
+        monitor AS m
+      LEFT JOIN
+        monitor_task as mt ON m.id = mt.monitor_id
+      LEFT JOIN
+        task as t ON mt.task_id = t.id
+      WHERE 
+        m.status != 0
+      GROUP BY 
+        m.id
+      `,
+    );
+
+    const [rows] = await conn.query<RowDataPacket[]>(
+      `SELECT 
       m.id, 
       m.name, 
       m.descr, 
@@ -188,6 +209,7 @@ export const queryMonitorList = async () => {
       m.create_time, 
       m.update_time,
       m.next_time,
+      m.exec_total_num,
       GROUP_CONCAT(t.id) as task_ids,
       GROUP_CONCAT(t.name) as task_names
     FROM monitor as m 
@@ -200,23 +222,33 @@ export const queryMonitorList = async () => {
     GROUP BY 
       m.id
     ORDER BY m.create_time DESC
+    LIMIT ${(+query.current - 1) * +query.pageSize}, ${+query.pageSize}
   `,
-  );
-  return rows.map(r => ({
-    id: r.id,
-    name: r.name,
-    descr: r.descr,
-    taskIds: r.task_ids.split(',').map(id => Number(id)),
-    taskNames: r.task_names.split(','),
-    cronTime: r.cron_time,
-    status: r.status,
-    taskFlow: r.task_flow,
-    createTime: dayjs(r.create_time).format('YYYY-MM-DD HH:mm:ss'),
-    updateTime: dayjs(r.update_time).format('YYYY-MM-DD HH:mm:ss'),
-    nextTime: r.next_time
-      ? dayjs(r.next_time).format('YYYY-MM-DD HH:mm:ss')
-      : '',
-  }));
+    );
+    return {
+      list: rows.map(r => ({
+        id: r.id,
+        name: r.name,
+        descr: r.descr,
+        taskIds: r.task_ids.split(',').map(id => Number(id)),
+        taskNames: r.task_names.split(','),
+        cronTime: r.cron_time,
+        status: r.status,
+        taskFlow: r.task_flow,
+        createTime: dayjs(r.create_time).format('YYYY-MM-DD HH:mm:ss'),
+        updateTime: dayjs(r.update_time).format('YYYY-MM-DD HH:mm:ss'),
+        execTotalNum: r.exec_total_num,
+        nextTime: r.next_time
+          ? dayjs(r.next_time).format('YYYY-MM-DD HH:mm:ss')
+          : '',
+      })),
+      total: totalRows[0]?.total ?? 0,
+    };
+  } catch (error) {
+    throw error;
+  } finally {
+    conn?.release();
+  }
 };
 
 export const deleteMonitorById = async (id: number) => {
@@ -418,41 +450,73 @@ export const stopAllMonitor = async (ctx: MyContext) => {
   }
 };
 
-export const getMonitorRecord = async () => {
+export const getMonitorRecord = async (query: MyQueryContext['query']) => {
+  let conn: PoolConnection | null = null;
   const pool = getPool();
-  const [rows] = await pool.query<RowDataPacket[]>(
-    `SELECT 
-      mr.id, 
-      mr.monitor_id, 
-      mr.status,
-      mr.start_time, 
-      mr.end_time,
-      mr.exec_time,
-      mr.result,
-      GROUP_CONCAT(t.id) as task_ids,
-      GROUP_CONCAT(t.name) as task_names
-    FROM monitorRecord as mr 
-    LEFT JOIN
-      monitor as m ON mr.monitor_id = m.id
-    LEFT JOIN 
-      monitor_task as mt ON mr.monitor_id = mt.monitor_id
-    LEFT JOIN
-      task as t ON mt.task_id = t.id 
-    GROUP BY
-      mr.monitor_id
-    ORDER BY mr.end_time DESC
-    `,
-  );
-  return rows.map(row => ({
-    id: row.id,
-    monitorId: row.monitor_id,
-    startTime: dayjs(row.start_time).format('YYYY-MM-DD HH:mm:ss'),
-    endTime: dayjs(row.end_time).format('YYYY-MM-DD HH:mm:ss'),
-    status: row.status,
-    execTime: row.exec_time,
-    result: row.result,
-    name: row.name,
-    taskIds: row.task_ids.split(',').map(id => Number(id)),
-    taskNames: row.task_names.split(','),
-  }));
+  conn = await pool.getConnection();
+
+  try {
+    // 查询总数
+    const [totalRows] = await conn.query<RowDataPacket[]>(
+      `SELECT
+        mr.monitor_id,
+        COUNT(*) as total 
+      FROM monitorRecord as mr 
+      LEFT JOIN
+        monitor as m ON mr.monitor_id = m.id
+      LEFT JOIN 
+        monitor_task as mt ON mr.monitor_id = mt.monitor_id
+      LEFT JOIN
+        task as t ON mt.task_id = t.id 
+      WHERE 
+        m.status != 0
+      GROUP BY 
+        mr.monitor_id
+      `,
+    );
+
+    const [rows] = await conn.query<RowDataPacket[]>(
+      `SELECT 
+        mr.id, 
+        mr.monitor_id, 
+        mr.status,
+        mr.start_time, 
+        mr.end_time,
+        mr.exec_time,
+        mr.result,
+        GROUP_CONCAT(t.id) as task_ids,
+        GROUP_CONCAT(t.name) as task_names
+      FROM monitorRecord as mr 
+      LEFT JOIN
+        monitor as m ON mr.monitor_id = m.id
+      LEFT JOIN 
+        monitor_task as mt ON mr.monitor_id = mt.monitor_id
+      LEFT JOIN
+        task as t ON mt.task_id = t.id 
+      GROUP BY
+        mr.monitor_id
+      ORDER BY mr.end_time DESC
+      LIMIT ${(+query.current - 1) * +query.pageSize}, ${+query.pageSize}
+      `,
+    );
+    return {
+      list: rows.map(row => ({
+        id: row.id,
+        monitorId: row.monitor_id,
+        startTime: dayjs(row.start_time).format('YYYY-MM-DD HH:mm:ss'),
+        endTime: dayjs(row.end_time).format('YYYY-MM-DD HH:mm:ss'),
+        status: row.status,
+        execTime: row.exec_time,
+        result: row.result,
+        name: row.name,
+        taskIds: row.task_ids.split(',').map(id => Number(id)),
+        taskNames: row.task_names.split(','),
+      })),
+      total: totalRows[0]?.total ?? 0,
+    };
+  } catch (error) {
+    throw error;
+  } finally {
+    conn?.release();
+  }
 };

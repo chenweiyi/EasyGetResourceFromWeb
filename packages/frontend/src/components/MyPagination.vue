@@ -11,6 +11,7 @@ const pageSize = defineModel<number>('pageSize');
   <el-pagination
     background
     size="small"
+    layout="prev, pager, next, jumper, sizes, total"
     v-if="total > 10"
     class="justify-center mt-20px"
     :total="total"

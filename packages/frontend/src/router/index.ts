@@ -7,7 +7,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/monitor',
     name: 'monitor',
-    redirect: '/monitor/new',
+    redirect: '/monitor/record',
     component: () => import('../views/Monitor.vue'),
     meta: {
       title: '监控',

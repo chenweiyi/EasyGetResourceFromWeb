@@ -153,10 +153,20 @@ watch(() => [pageSize.value, current.value], query);
         <template #default="scope">
           <el-tooltip
             content="正在运行"
-            v-if="scope.row.status === 2"
+            v-if="
+              (scope.row.status === 2 && !btnLoading) ||
+              (scope.row.status === 1 && btnLoading)
+            "
             placement="top"
           >
             <i-ep-video-play class="text-blue" />
+          </el-tooltip>
+          <el-tooltip
+            content="正在停止"
+            v-if="scope.row.status === 2 && btnLoading"
+            placement="top"
+          >
+            <i-ep-video-pause class="text-red" />
           </el-tooltip>
           <el-tooltip
             content="正常"

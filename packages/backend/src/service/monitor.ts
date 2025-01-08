@@ -70,7 +70,6 @@ export const addNewMonitor = async (data: IMonitorType) => {
         'INSERT INTO monitor_task SET ?',
         mt,
       );
-      debug('affectedRows:', res2[0].affectedRows);
 
       if (res2[0].affectedRows !== data.taskIds.length) {
         throw new Error('添加监控任务关联表失败');
@@ -104,7 +103,6 @@ export const updateMonitorById = async (data: IMonitorWithId) => {
     const d = {
       name: data.name,
       descr: data.descr,
-      task_ids: data.taskIds.join(','),
       cron_time: data.cronTime,
       task_flow: data.taskFlow,
       update_time: dayjs().format('YYYY-MM-DD HH:mm:ss'),
@@ -112,14 +110,29 @@ export const updateMonitorById = async (data: IMonitorWithId) => {
 
     debug('d:', d);
 
-    const res = await conn.query<ResultSetHeader>(
-      'UPDATE monitor SET ? WHERE id = ?',
-      [d, data.id],
-    );
-    if (res[0].affectedRows === 0) {
-      throw new Error('更新监控单失败');
+    try {
+      await conn.beginTransaction();
+      await conn.query<ResultSetHeader>('UPDATE monitor SET ? WHERE id = ?', [
+        d,
+        data.id,
+      ]);
+      const mt = data.taskIds.map(id => {
+        return {
+          monitor_id: data.id,
+          task_id: id,
+        };
+      });
+      debug('mt:', mt);
+      await conn.query<ResultSetHeader>(
+        'DELETE FROM monitor_task WHERE monitor_id = ?',
+        [data.id],
+      );
+      await conn.query<ResultSetHeader>('INSERT INTO monitor_task SET ?', mt);
+      await conn.commit();
+    } catch (error) {
+      await conn.rollback();
+      throw error;
     }
-    return res[0].insertId;
   } catch (error) {
     throw error;
   } finally {

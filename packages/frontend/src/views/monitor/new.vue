@@ -23,6 +23,8 @@ const rules = ref({
 const formRef = ref<FormInstance>();
 const loading = ref(false);
 const tasks = ref<ITaskData[]>([]);
+const cache = ref(JSON.stringify(form.value));
+const changed = ref(false);
 
 const getTasks = async () => {
   try {
@@ -90,6 +92,7 @@ const query = async () => {
     const monitor = await getMonitorById(props.id);
     console.log('monitor:', monitor);
     form.value = monitor[0];
+    cache.value = JSON.stringify(monitor[0]);
   } catch (error) {
     console.error(error);
   } finally {
@@ -103,14 +106,38 @@ onMounted(async () => {
     query();
   }
 });
+
+watch(
+  form,
+  val => {
+    if (!props.id) {
+      return;
+    }
+    if (JSON.stringify(val) !== cache.value) {
+      changed.value = true;
+    } else {
+      changed.value = false;
+    }
+  },
+  {
+    deep: true,
+  },
+);
 </script>
 
 <template>
   <div class="flex flex-col" v-loading="loading">
     <div class="flex justify-end">
-      <el-button type="primary" :disabled="loading" @click="submit">{{
-        props.id ? '更新' : '添加'
-      }}</el-button>
+      <el-button
+        type="primary"
+        v-if="props.id"
+        :disabled="loading || !changed"
+        @click="submit"
+        >更新</el-button
+      >
+      <el-button type="primary" v-else :disabled="loading" @click="submit"
+        >添加</el-button
+      >
       <el-button
         type="danger"
         :disabled="loading"

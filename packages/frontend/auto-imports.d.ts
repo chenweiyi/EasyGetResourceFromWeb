@@ -43,6 +43,7 @@ declare global {
   const isReactive: typeof import('vue')['isReactive']
   const isReadonly: typeof import('vue')['isReadonly']
   const isRef: typeof import('vue')['isRef']
+  const judgeCronTime: typeof import('./src/api/monitor')['judgeCronTime']
   const markRaw: typeof import('vue')['markRaw']
   const nextTick: typeof import('vue')['nextTick']
   const onActivated: typeof import('vue')['onActivated']
@@ -105,7 +106,7 @@ declare global {
   export type { FormInstance } from 'element-plus'
   import('element-plus')
   // @ts-ignore
-  export type { IMonitorType, IMonitorWithId, IMonitorData, IMonitorListData, IMonitorRecord } from './src/api/monitor'
+  export type { IMonitorType, IMonitorWithId, IMonitorData, IMonitorListData, IMonitorRecord, IMonitorRecordData, IJudgeCronTime } from './src/api/monitor'
   import('./src/api/monitor')
   // @ts-ignore
   export type { ITaskType, ITaskData, ITaskListData, ITaskWithId, ITaskField, ITaskRecord, ITaskRecordData } from './src/api/task'

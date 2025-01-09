@@ -7,6 +7,7 @@ import { type ITaskField } from './task';
 import { CronJob } from 'cron';
 import { MyContext, MyQueryContext } from '../@types/api';
 import { modifyTableField } from './util';
+import { CRON_MIN_INTERVAL_SECONED } from '../const';
 
 const debug = debugLibrary('monitor:service');
 
@@ -15,6 +16,10 @@ export type IMonitorType = {
   descr: string;
   taskIds: number[];
   taskFlow: string;
+  cronTime: string;
+};
+
+export type IJudgeCronRequestBody = {
   cronTime: string;
 };
 
@@ -277,6 +282,7 @@ export const execMonitorById = async (ctx: MyContext, id: number) => {
     if (ctx.cronMap?.has(id)) {
       throw new Error('监控单任务已存在');
     }
+
     const [rows] = await conn.query<RowDataPacket[]>(
       'SELECT * FROM monitor WHERE id = ? AND status != 0',
       [id],
@@ -290,9 +296,10 @@ export const execMonitorById = async (ctx: MyContext, id: number) => {
       `SELECT 
         m.id, 
         m.name, 
+        m.exec_total_num,
         m.task_flow,
         m.cron_time,
-        GROUP_CONCAT(t.id) as task_ids,
+        GROUP_CONCAT(t.id) as task_ids
       FROM monitor as m
       LEFT JOIN 
         monitor_task as mt ON m.id = mt.monitor_id
@@ -306,20 +313,24 @@ export const execMonitorById = async (ctx: MyContext, id: number) => {
     );
 
     if (res[0].length === 0) {
-      throw new Error('查询监控单关联任务为空');
+      throw new Error(
+        '查询监控单关联任务为空, 请检查监控单是否配置了关联的任务',
+      );
     }
+
+    const { task_ids, task_flow, cron_time, exec_total_num } = res[0][0];
 
     const tasks = await conn.query<RowDataPacket[]>(
       'SELECT id, url, fields, enable_proxy as useProxy FROM task WHERE id IN (?) AND status != 0',
-      res[0][0].task_ids.split(',').map(id => Number(id)),
+      task_ids.split(',').map(id => Number(id)),
     );
 
     if (tasks[0].length === 0) {
       throw new Error('查询监控单关联任务为空或关联任务已删除');
     }
 
-    const taskFlow = JSON.parse(res[0][0].task_flow);
-    let cronTime = res[0][0].cron_time.trim();
+    const taskFlow = JSON.parse(task_flow);
+    let cronTime = cron_time.trim();
 
     debug('cronTime:', cronTime);
 
@@ -327,6 +338,10 @@ export const execMonitorById = async (ctx: MyContext, id: number) => {
       // 兼容时间戳
       cronTime = new Date(cronTime);
     }
+
+    await judgeCronTime({
+      cronTime: cronTime,
+    });
 
     const job = CronJob.from({
       cronTime,
@@ -344,7 +359,7 @@ export const execMonitorById = async (ctx: MyContext, id: number) => {
           // 执行任务
           const startTime = dayjs();
           let result: ITaskField[] = [];
-          let isError = false;
+          let crawler_error = null;
           try {
             result = await crawlerPatch(
               tasks[0] as IPatchCrawlerOptions,
@@ -352,7 +367,7 @@ export const execMonitorById = async (ctx: MyContext, id: number) => {
             );
           } catch (error) {
             debug(error);
-            isError = true;
+            crawler_error = error;
           }
 
           // 更新任务记录
@@ -361,9 +376,11 @@ export const execMonitorById = async (ctx: MyContext, id: number) => {
             monitor_id: id,
             start_time: startTime.format('YYYY-MM-DD HH:mm:ss'),
             end_time: endTime.format('YYYY-MM-DD HH:mm:ss'),
-            status: isError ? 1 : 0,
+            status: crawler_error ? 1 : 0,
             exec_time: endTime.diff(startTime, 's'),
-            result: isError ? JSON.stringify({}) : JSON.stringify(result),
+            result: crawler_error
+              ? JSON.stringify({ message: crawler_error.message || 'error' })
+              : JSON.stringify(result),
           };
 
           debug('d2:', d2);
@@ -372,8 +389,6 @@ export const execMonitorById = async (ctx: MyContext, id: number) => {
             'INSERT INTO monitorRecord SET ?',
             [d2],
           );
-
-          debug('res2:', res2);
 
           if (res2[0].affectedRows === 0) {
             throw new Error('插入监控单记录失败');
@@ -387,9 +402,11 @@ export const execMonitorById = async (ctx: MyContext, id: number) => {
 
           await modifyTableField({
             id,
-            value: date,
-            conn,
-            field: 'next_time',
+            value: {
+              next_time: date,
+              exec_total_num: exec_total_num + 1,
+            },
+            conn: conn2,
             table: 'monitor',
           });
         } catch (error) {
@@ -398,7 +415,7 @@ export const execMonitorById = async (ctx: MyContext, id: number) => {
           conn2.release();
         }
       },
-      start: false,
+      start: true,
       timeZone: 'Asia/Shanghai',
     });
 
@@ -410,19 +427,17 @@ export const execMonitorById = async (ctx: MyContext, id: number) => {
     debug('date:', date);
     await modifyTableField({
       id,
-      value: date,
+      value: {
+        next_time: date,
+        status: 2,
+      },
       conn,
-      field: 'next_time',
       table: 'monitor',
     });
-
-    if (!ctx.cronMap) {
-      ctx.cronMap = new Map<number, CronJob>();
-    }
-
     if (!ctx.cronMap.has(id)) {
       ctx.cronMap.set(id, job);
     } else {
+      // 理论上不会走这里
       const cropDemo = ctx.cronMap.get(id);
       cropDemo.stop();
       ctx.cronMap.set(id, job);
@@ -447,18 +462,20 @@ export const stopMonitorById = async (ctx: MyContext, id: number) => {
     }
 
     if (!ctx.cronMap?.has(id)) {
-      throw new Error('监控单任务不存在或已删除');
+      throw new Error('监控job不存在');
     } else {
       const cropDemo = ctx.cronMap.get(id);
       cropDemo.stop();
       ctx.cronMap.delete(id);
     }
-    // 更新任务状态为正在执行
+    // 更新任务状态为正常空闲
     await modifyTableField({
       id,
-      value: 1,
+      value: {
+        status: 1,
+        next_time: null,
+      },
       conn,
-      field: 'status',
       table: 'monitor',
     });
   } catch (error) {
@@ -477,7 +494,7 @@ export const stopAllMonitor = async (ctx: MyContext) => {
     ctx.cronMap.clear();
     const pool = getPool();
     await pool.query<ResultSetHeader>(
-      'UPDATE monitor SET status = 1 WHERE id IN (?)',
+      'UPDATE monitor SET status = 1, next_time = null WHERE id IN (?)',
       ids,
     );
   }
@@ -549,5 +566,31 @@ export const getMonitorRecord = async (query: MyQueryContext['query']) => {
     throw error;
   } finally {
     conn?.release();
+  }
+};
+
+export const judgeCronTime = async (data: IJudgeCronRequestBody) => {
+  const { cronTime } = data;
+  let time: any = cronTime.trim();
+
+  if (!isNaN(parseInt(time))) {
+    // 兼容时间戳
+    return;
+  }
+
+  const job = CronJob.from({
+    cronTime: time,
+    onTick: async () => {},
+    start: false,
+    timeZone: 'Asia/Shanghai',
+  });
+  const interval =
+    process.env.CRON_MIN_INTERVAL_SECONED || CRON_MIN_INTERVAL_SECONED;
+  const intervalMS = +interval * 1000;
+  const dates = job.nextDates(2);
+  const date1 = dates[0].setZone('Asia/Shanghai').valueOf();
+  const date2 = dates[1].setZone('Asia/Shanghai').valueOf();
+  if (date2 - date1 < intervalMS) {
+    throw new Error(`执行间隔时间过短，不少于 ${interval} s`);
   }
 };

@@ -6,6 +6,7 @@ import http from 'http';
 // import '../utils/abortControllerPolyfill';
 // import '../utils/fetchPolyfill';
 import app from '../app';
+import { restoreData } from '../utils/restoreData';
 
 const debug = debugLibrary('crawler');
 
@@ -82,5 +83,6 @@ function onListening() {
   var addr = server.address();
   var bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr?.port;
   debug('Listening on ' + bind);
-  console.log('Listening on ' + bind);
+
+  restoreData();
 }

@@ -4,7 +4,7 @@ import debugLibrary from 'debug';
 export const commonResponse = async (
   ctx: Koa.Context,
   task: () => Promise<any>,
-  debug: debugLibrary.Debugger,
+  debug?: debugLibrary.Debugger,
 ) => {
   try {
     const res = await task();
@@ -15,7 +15,7 @@ export const commonResponse = async (
       data: res,
     };
   } catch (error) {
-    debug(error);
+    debug?.(error);
     ctx.status = 200;
     ctx.body = {
       code: 500,

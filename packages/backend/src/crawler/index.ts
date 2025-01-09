@@ -76,11 +76,10 @@ const crawlerPatch = async (
   taskFlow: IFlowData,
 ) => {
   let result: ITaskField[] = [];
-  let pre: ITaskField[] = [];
   for (let i = 0; i < taskFlow.length; i++) {
     const id = taskFlow[i];
-    if (typeof id === 'number') {
-      const task = tasks.find(t => t.id === id);
+    if (typeof id === 'number' || typeof id === 'string') {
+      const task = tasks.find(t => t.id == id);
       if (!task) {
         throw new Error('任务不存在');
       }
@@ -90,15 +89,15 @@ const crawlerPatch = async (
         useProxy,
         fields,
       };
-      const res = await crawler(crawlerOptions, pre);
-      result = pre = res;
+      const res = await crawler(crawlerOptions, result);
+      result = res;
     } else if (Array.isArray(id)) {
-      if (id.some(d => typeof d !== 'number')) {
+      if (id.some(d => typeof d !== 'number' || typeof d !== 'string')) {
         throw new Error('最多只能嵌套一层数组');
       }
       const res = await Promise.all(
         id.map(d => {
-          const task = tasks.find(t => t.id === d);
+          const task = tasks.find(t => t.id == d);
           if (!task) {
             throw new Error('任务不存在');
           }
@@ -108,10 +107,10 @@ const crawlerPatch = async (
             useProxy,
             fields,
           };
-          return crawler(crawlerOptions, pre);
+          return crawler(crawlerOptions, result);
         }),
       );
-      result = pre = res.flat();
+      result = res.flat();
     } else {
       throw new Error(`task_flow 格式错误: ${JSON.stringify(taskFlow)} `);
     }

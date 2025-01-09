@@ -39,11 +39,13 @@ service.interceptors.request.use(
 service.interceptors.response.use(
   async response => {
     const res = response.data;
+    const config = response.config;
     if (res.code === 0) {
       return res.data;
     } else {
-      ElMessage.error(res.msg || '发生错误');
-      // console.error(res);
+      if (config.headers['notAlertWhenError'] !== '1') {
+        ElMessage.error(res.msg || 'error');
+      }
     }
     return Promise.reject(res);
   },

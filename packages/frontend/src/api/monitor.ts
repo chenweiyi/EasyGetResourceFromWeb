@@ -42,6 +42,10 @@ export type IMonitorRecordData = {
   total: number;
 };
 
+export type IJudgeCronTime = {
+  cronTime: string;
+};
+
 export const addNewMonitor: (data: IMonitorType) => Promise<null> = data => {
   return axios({
     url: '/monitor/add',
@@ -105,5 +109,17 @@ export const getMonitorRecord: (
     url: '/monitor/record/list',
     method: 'get',
     params,
+  });
+};
+
+export const judgeCronTime: (
+  data: IJudgeCronTime,
+  headers?: Record<string, any>,
+) => Promise<void> = (data, headers = {}) => {
+  return axios({
+    url: '/monitor/cron/judge',
+    method: 'post',
+    data,
+    headers,
   });
 };

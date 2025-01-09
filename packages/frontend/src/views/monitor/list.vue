@@ -149,7 +149,7 @@ watch(() => [pageSize.value, current.value], query);
           <span>{{ getExecTime(scope.row.cronTime) }}</span>
         </template>
       </el-table-column>
-      <el-table-column prop="status" label="状态">
+      <el-table-column prop="status" label="状态" width="100px">
         <template #default="scope">
           <el-tooltip
             content="正在运行"
@@ -159,21 +159,27 @@ watch(() => [pageSize.value, current.value], query);
             "
             placement="top"
           >
-            <i-ep-video-play class="text-blue" />
+            <div class="h-full flex align-center">
+              <i-ep-video-play class="text-blue mt-5px" />
+            </div>
           </el-tooltip>
           <el-tooltip
             content="正在停止"
             v-if="scope.row.status === 2 && btnLoading"
             placement="top"
           >
-            <i-ep-video-pause class="text-red" />
+            <div class="h-full flex align-center">
+              <i-ep-video-pause class="text-red" />
+            </div>
           </el-tooltip>
           <el-tooltip
             content="正常"
             v-else-if="scope.row.status === 1"
             placement="top"
           >
-            <i-ep-select class="text-green" />
+            <div class="h-full flex align-center">
+              <i-ep-select class="text-green" />
+            </div>
           </el-tooltip>
         </template>
       </el-table-column>

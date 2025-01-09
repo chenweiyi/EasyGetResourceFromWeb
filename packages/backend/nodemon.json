@@ -7,6 +7,5 @@
   "execMap": {
     "ts": "ts-node",
     "mts": "npx ts-node"
-  },
-  "ext": "mts"
+  }
 }

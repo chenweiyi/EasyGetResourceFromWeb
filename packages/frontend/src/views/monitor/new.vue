@@ -16,8 +16,25 @@ const form = ref<IMonitorType & { execTotalNum?: number }>({
 const rules = ref({
   name: [{ required: true, message: '请输入监控单名称', trigger: 'blur' }],
   taskIds: [{ required: true, message: '请选择任务', trigger: 'change' }],
-  cronTime: [{ required: true, message: '请选择执行时间', trigger: 'blur' }],
   taskFlow: [{ required: true, message: '请输入任务流程', trigger: 'blur' }],
+  cronTime: [
+    { required: true, message: '请选择执行时间', trigger: 'blur' },
+    {
+      asyncValidator: async (rule: any, value: string) => {
+        try {
+          await judgeCronTime(
+            { cronTime: value },
+            {
+              notAlertWhenError: 1,
+            },
+          );
+        } catch (error) {
+          throw new Error((error as { msg: string }).msg);
+        }
+      },
+      trigger: 'blur',
+    },
+  ],
 });
 
 const formRef = ref<FormInstance>();
@@ -224,7 +241,7 @@ watch(
           </template>
           <el-input
             v-model="form.cronTime"
-            placeholder="cron时间规则: 秒 分 时 日 月 周 ；或者指定一个时间戳 "
+            placeholder="cron时间规则: 秒 分 时 日 月 周 ；或者指定一个时间戳"
           />
         </el-form-item>
       </el-form>

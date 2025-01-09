@@ -157,7 +157,12 @@ watch(() => [pageSize.value, current.value], query);
           </div>
         </template>
       </el-table-column>
-      <el-table-column prop="name" label="任务名称" show-overflow-tooltip />
+      <el-table-column prop="name" label="任务名称" show-overflow-tooltip>
+        <template #default="scope">
+          <span>{{ scope.row.name }}</span>
+          <span class="ml-4px">[{{ scope.row.id }}]</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="status" label="状态" width="100">
         <template #default="scope">
           <el-tooltip

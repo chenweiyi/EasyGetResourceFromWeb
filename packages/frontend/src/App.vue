@@ -39,7 +39,7 @@ const clickMenu = (menu: IMenu) => {
 watch(
   () => route.name,
   () => {
-    document.title = `Data Platform - ${route.meta.title as string}`;
+    document.title = `EasyGetResourceFromWeb - ${route.meta.title as string}`;
   },
   {
     immediate: true,
@@ -59,7 +59,7 @@ watch(
                 alt=""
                 class="w-36px h-36px mr-8px transition rotate-20"
               />
-              <span class="text-18px">Data Platform</span>
+              <span class="text-18px">EasyGetResourceFromWeb</span>
               <span class="separator"></span>
             </div>
             <div class="common-menus">

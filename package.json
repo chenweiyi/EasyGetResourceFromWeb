@@ -1,7 +1,7 @@
 {
-  "name": "crawler-data",
+  "name": "easy-get-resource-from-web",
   "version": "1.0.0",
-  "description": "大知识库项目，爬取想要的信息，并可视化展示",
+  "description": "帮助你低成本的获取网络资源",
   "type": "module",
   "scripts": {
     "dev:back": "pnpm --filter=crawler-backend run dev",

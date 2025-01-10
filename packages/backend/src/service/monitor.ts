@@ -1,4 +1,4 @@
-import { PoolConnection, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
+import { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import { getConn, getPool } from '../utils/mysql';
 import debugLibrary from 'debug';
 import dayjs from 'dayjs';
@@ -6,7 +6,7 @@ import { crawlerPatch, IPatchCrawlerOptions } from '../crawler/index';
 import { type ITaskField } from './task';
 import { CronJob } from 'cron';
 import { MyContext, MyQueryContext } from '../@types/api';
-import { modifyTableField } from './util';
+import { getNextTime, modifyTableField } from './util';
 import { CRON_MIN_INTERVAL_SECONED } from '../const';
 
 const debug = debugLibrary('monitor:service');
@@ -31,7 +31,7 @@ export const addNewMonitor = async (data: IMonitorType) => {
   const conn = await getConn();
   try {
     const [rows] = await conn.query<RowDataPacket[]>(
-      'SELECT * FROM monitor WHERE name = ?',
+      'SELECT * FROM monitor WHERE name = ? AND status != 0',
       [data.name],
     );
     if (rows.length > 0) {
@@ -42,7 +42,6 @@ export const addNewMonitor = async (data: IMonitorType) => {
     const d = {
       name: data.name,
       descr: data.descr,
-      // task_ids: data.taskIds.join(','),
       cron_time: data.cronTime,
       task_flow: data.taskFlow,
       status: 1,
@@ -77,7 +76,7 @@ export const addNewMonitor = async (data: IMonitorType) => {
       );
 
       if (res2[0].affectedRows !== data.taskIds.length) {
-        throw new Error('添加监控任务关联表失败');
+        throw new Error('添加监控任务关联表失败或部分失败');
       }
 
       await conn.commit();
@@ -158,7 +157,6 @@ export const getMonitorById = async (id: number) => {
         m.task_flow, 
         m.create_time, 
         m.update_time,
-        m.next_time,
         m.exec_total_num,
         GROUP_CONCAT(t.id) as task_ids,
         GROUP_CONCAT(t.name) as task_names
@@ -224,7 +222,6 @@ export const queryMonitorList = async (query: MyQueryContext['query']) => {
       m.task_flow, 
       m.create_time, 
       m.update_time,
-      m.next_time,
       m.exec_total_num,
       GROUP_CONCAT(t.id) as task_ids,
       GROUP_CONCAT(t.name) as task_names
@@ -254,9 +251,7 @@ export const queryMonitorList = async (query: MyQueryContext['query']) => {
         createTime: dayjs(r.create_time).format('YYYY-MM-DD HH:mm:ss'),
         updateTime: dayjs(r.update_time).format('YYYY-MM-DD HH:mm:ss'),
         execTotalNum: r.exec_total_num,
-        nextTime: r.next_time
-          ? dayjs(r.next_time).format('YYYY-MM-DD HH:mm:ss')
-          : '',
+        nextTime: getNextTime(r.cron_time),
       })),
       total: totalRows[0]?.total ?? 0,
     };
@@ -268,12 +263,28 @@ export const queryMonitorList = async (query: MyQueryContext['query']) => {
 };
 
 export const deleteMonitorById = async (id: number) => {
-  return await modifyTableField({
-    id,
-    value: 0,
-    field: 'status',
-    table: 'monitor',
-  });
+  const conn = await getConn();
+  try {
+    await conn.beginTransaction();
+    await modifyTableField({
+      id,
+      value: {
+        status: 0,
+        update_time: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+      },
+      table: 'monitor',
+      conn,
+    });
+    await conn.query<ResultSetHeader>(
+      'DELETE FROM monitor_task WHERE monitor_id = ?',
+      [id],
+    );
+    await conn.commit();
+  } catch (error) {
+    throw error;
+  } finally {
+    conn.release();
+  }
 };
 
 export const execMonitorById = async (ctx: MyContext, id: number) => {
@@ -306,10 +317,11 @@ export const execMonitorById = async (ctx: MyContext, id: number) => {
       LEFT JOIN
         task as t ON mt.task_id = t.id
       WHERE 
-        m.status != 0
+        m.status != 0 AND m.id = ?
       GROUP BY 
         m.id
     `,
+      [id],
     );
 
     if (res[0].length === 0) {
@@ -330,21 +342,22 @@ export const execMonitorById = async (ctx: MyContext, id: number) => {
     }
 
     const taskFlow = JSON.parse(task_flow);
-    let cronTime = cron_time.trim();
+    let cronTime: string = cron_time.trim();
+    let ct: string | Date = cronTime;
 
     debug('cronTime:', cronTime);
 
-    if (!isNaN(cronTime)) {
-      // 兼容时间戳
-      cronTime = new Date(cronTime);
-    }
-
     await judgeCronTime({
-      cronTime: cronTime,
+      cronTime,
     });
 
+    if (!isNaN(Number(cronTime))) {
+      // 兼容时间戳
+      ct = new Date(+cronTime);
+    }
+
     const job = CronJob.from({
-      cronTime,
+      cronTime: ct,
       onTick: async () => {
         const conn2 = await getConn();
         try {
@@ -362,7 +375,12 @@ export const execMonitorById = async (ctx: MyContext, id: number) => {
           let crawler_error = null;
           try {
             result = await crawlerPatch(
-              tasks[0] as IPatchCrawlerOptions,
+              tasks[0].map(t => {
+                return {
+                  ...t,
+                  fields: JSON.parse(t.fields),
+                };
+              }) as IPatchCrawlerOptions,
               taskFlow,
             );
           } catch (error) {
@@ -394,16 +412,18 @@ export const execMonitorById = async (ctx: MyContext, id: number) => {
             throw new Error('插入监控单记录失败');
           }
 
-          const nextDate = job.nextDate();
-          const date = dayjs(
-            nextDate.setZone('Asia/Shanghai').valueOf(),
-          ).format('YYYY-MM-DD HH:mm:ss');
-          debug('next date:', date);
+          let date = null;
+          try {
+            const nextDate = job.nextDate();
+            date = dayjs(nextDate.setZone('Asia/Shanghai').valueOf()).format(
+              'YYYY-MM-DD HH:mm:ss',
+            );
+            debug('next date:', date);
+          } catch (error) {}
 
           await modifyTableField({
             id,
             value: {
-              next_time: date,
               exec_total_num: exec_total_num + 1,
             },
             conn: conn2,
@@ -419,16 +439,18 @@ export const execMonitorById = async (ctx: MyContext, id: number) => {
       timeZone: 'Asia/Shanghai',
     });
 
-    const nextDate = job.nextDate();
-    const date = dayjs(nextDate.setZone('Asia/Shanghai').valueOf()).format(
-      'YYYY-MM-DD HH:mm:ss',
-    );
+    let date = null;
+    try {
+      const nextDate = job.nextDate();
+      date = dayjs(nextDate.setZone('Asia/Shanghai').valueOf()).format(
+        'YYYY-MM-DD HH:mm:ss',
+      );
 
-    debug('date:', date);
+      debug('date:', date);
+    } catch (error) {}
     await modifyTableField({
       id,
       value: {
-        next_time: date,
         status: 2,
       },
       conn,
@@ -473,7 +495,6 @@ export const stopMonitorById = async (ctx: MyContext, id: number) => {
       id,
       value: {
         status: 1,
-        next_time: null,
       },
       conn,
       table: 'monitor',
@@ -494,7 +515,7 @@ export const stopAllMonitor = async (ctx: MyContext) => {
     ctx.cronMap.clear();
     const pool = getPool();
     await pool.query<ResultSetHeader>(
-      'UPDATE monitor SET status = 1, next_time = null WHERE id IN (?)',
+      'UPDATE monitor SET status = 1 WHERE id IN (?)',
       ids,
     );
   }
@@ -526,6 +547,7 @@ export const getMonitorRecord = async (query: MyQueryContext['query']) => {
     const [rows] = await conn.query<RowDataPacket[]>(
       `SELECT 
         mr.id, 
+        m.name,
         mr.monitor_id, 
         mr.status,
         mr.start_time, 
@@ -542,7 +564,8 @@ export const getMonitorRecord = async (query: MyQueryContext['query']) => {
       LEFT JOIN
         task as t ON mt.task_id = t.id 
       GROUP BY
-        mr.monitor_id
+        mr.monitor_id,
+        mr.id
       ORDER BY mr.end_time DESC
       LIMIT ${(+query.current - 1) * +query.pageSize}, ${+query.pageSize}
       `,
@@ -550,13 +573,13 @@ export const getMonitorRecord = async (query: MyQueryContext['query']) => {
     return {
       list: rows.map(row => ({
         id: row.id,
+        name: row.name,
         monitorId: row.monitor_id,
         startTime: dayjs(row.start_time).format('YYYY-MM-DD HH:mm:ss'),
         endTime: dayjs(row.end_time).format('YYYY-MM-DD HH:mm:ss'),
         status: row.status,
         execTime: row.exec_time,
         result: row.result,
-        name: row.name,
         taskIds: row.task_ids.split(',').map(id => Number(id)),
         taskNames: row.task_names.split(','),
       })),
@@ -571,25 +594,38 @@ export const getMonitorRecord = async (query: MyQueryContext['query']) => {
 
 export const judgeCronTime = async (data: IJudgeCronRequestBody) => {
   const { cronTime } = data;
-  let time: any = cronTime.trim();
+  let time: string = cronTime.trim();
+  let ct: string | Date = time;
 
-  if (!isNaN(parseInt(time))) {
+  if (!isNaN(Number(time))) {
     // 兼容时间戳
-    return;
+    ct = new Date(+time);
   }
 
   const job = CronJob.from({
-    cronTime: time,
+    cronTime: ct,
     onTick: async () => {},
     start: false,
     timeZone: 'Asia/Shanghai',
   });
+
+  const dates = job.nextDates(3);
+  if (!dates.length && typeof ct === 'object') {
+    // 兼容时间戳
+    return;
+  }
+
   const interval =
     process.env.CRON_MIN_INTERVAL_SECONED || CRON_MIN_INTERVAL_SECONED;
   const intervalMS = +interval * 1000;
-  const dates = job.nextDates(2);
+
   const date1 = dates[0].setZone('Asia/Shanghai').valueOf();
   const date2 = dates[1].setZone('Asia/Shanghai').valueOf();
+  const date3 = dates[2].setZone('Asia/Shanghai').valueOf();
+  debug('date1:', dayjs(date1).format('YYYY-MM-DD HH:mm:ss'));
+  debug('date2:', dayjs(date2).format('YYYY-MM-DD HH:mm:ss'));
+  debug('date3:', dayjs(date3).format('YYYY-MM-DD HH:mm:ss'));
+
   if (date2 - date1 < intervalMS) {
     throw new Error(`执行间隔时间过短，不少于 ${interval} s`);
   }

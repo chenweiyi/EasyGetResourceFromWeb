@@ -5,6 +5,7 @@ const props = defineProps<{
 
 const emit = defineEmits(['close', 'updated']);
 
+const router = useRouter();
 const form = ref<ITaskType & { execTotalNum?: number }>({
   name: '',
   url: '',
@@ -96,6 +97,9 @@ const submit = async () => {
             retryNum: form.value.retryNum == null ? 2 : +form.value.retryNum,
           });
           ElMessage.success('添加成功');
+          router.push({
+            name: 'task-list',
+          });
         }
       } catch (error) {
         console.error(error);

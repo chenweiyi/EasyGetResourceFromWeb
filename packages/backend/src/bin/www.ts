@@ -6,7 +6,7 @@ import http from 'http';
 // import '../utils/abortControllerPolyfill';
 // import '../utils/fetchPolyfill';
 import app from '../app';
-import { restoreData } from '../utils/restoreData';
+import { clearZombieCron, restoreData } from '../utils/initHelper';
 
 const debug = debugLibrary('crawler');
 
@@ -85,4 +85,5 @@ function onListening() {
   debug('Listening on ' + bind);
 
   restoreData();
+  clearZombieCron();
 }

@@ -119,7 +119,7 @@ export const addNewTask = async (data: ITaskType) => {
   const conn = await getConn();
   try {
     const [rows] = await conn.query<RowDataPacket[]>(
-      'SELECT * FROM task WHERE name = ?',
+      'SELECT * FROM task WHERE name = ? AND status != 0',
       [data.name],
     );
     if (rows.length > 0) {
@@ -258,12 +258,29 @@ export const updateTaskById = async (data: ITaskWithId) => {
 };
 
 export const deleteTaskById = async (id: number) => {
-  return await modifyTableField({
-    id,
-    value: 0,
-    field: 'status',
-    table: 'task',
-  });
+  const conn = await getConn();
+  try {
+    const [rows] = await conn.query<RowDataPacket[]>(
+      'SELECT COUNT(*) as count FROM monitor_task WHERE task_id = ?',
+      [id],
+    );
+    if (rows[0].count > 0) {
+      throw new Error('有监控单依赖该任务，若要删除，请先删除监控单或取消关联');
+    }
+    await modifyTableField({
+      id,
+      value: {
+        status: 0,
+        update_time: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+      },
+      table: 'task',
+      conn,
+    });
+  } catch (error) {
+    throw error;
+  } finally {
+    conn.release();
+  }
 };
 
 export const copyTaskById = async (id: number) => {

@@ -209,6 +209,9 @@ importers:
         specifier: ^4.4.5
         version: 4.5.0(vue@3.5.13)
     devDependencies:
+      '@iconify-json/svg-spinners':
+        specifier: ^1.2.2
+        version: 1.2.2
       '@tsconfig/node22':
         specifier: ^22.0.0
         version: 22.0.0
@@ -1368,6 +1371,12 @@ packages:
     dependencies:
       '@iconify/types': 2.0.0
     dev: false
+
+  /@iconify-json/svg-spinners@1.2.2:
+    resolution: {integrity: sha512-DIErwfBWWzLfmAG2oQnbUOSqZhDxlXvr8941itMCrxQoMB0Hiv8Ww6Bln/zIgxwjDvSem2dKJtap+yKKwsB/2A==}
+    dependencies:
+      '@iconify/types': 2.0.0
+    dev: true
 
   /@iconify/types@2.0.0:
     resolution: {integrity: sha512-+wluvCrRhXrhyOmRDJ3q8mux9JkKy5SJ/v8ol2tu4FVjyYvtEzkc/3pK15ET6RKg4b4w4BmTk1+gsCUhf21Ykg==}

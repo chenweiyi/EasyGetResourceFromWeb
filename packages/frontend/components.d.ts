@@ -45,6 +45,7 @@ declare module 'vue' {
     IEpVideoPause: typeof import('~icons/ep/video-pause')['default']
     IEpVideoPlay: typeof import('~icons/ep/video-play')['default']
     IEpWarningFilled: typeof import('~icons/ep/warning-filled')['default']
+    ISvgSpinnersBarsScale: typeof import('~icons/svg-spinners/bars-scale')['default']
     JsonViewer: typeof import('./src/components/JsonViewer.vue')['default']
     MyPagination: typeof import('./src/components/MyPagination.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']

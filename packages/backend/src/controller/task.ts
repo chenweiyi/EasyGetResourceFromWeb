@@ -65,7 +65,7 @@ export default class TaskController {
   public static async deleteTaskById(ctx: Koa.Context) {
     const id = ctx.params.id;
     debug('id:', id);
-    await commonResponse(ctx, async () => await deleteTaskById(+id), debug);
+    await commonResponse(ctx, async () => await deleteTaskById(+id));
   }
 
   public static async copyTaskById(ctx: Koa.Context) {

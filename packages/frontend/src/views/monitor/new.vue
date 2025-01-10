@@ -5,6 +5,7 @@ const props = defineProps<{
 
 const emit = defineEmits(['close']);
 
+const router = useRouter();
 const form = ref<IMonitorType & { execTotalNum?: number }>({
   name: '',
   descr: '',
@@ -85,6 +86,9 @@ const submit = async () => {
             cronTime: form.value.cronTime,
           });
           ElMessage.success('添加成功');
+          router.push({
+            name: 'monitor-list',
+          });
         }
       } catch (error) {
         console.error(error);

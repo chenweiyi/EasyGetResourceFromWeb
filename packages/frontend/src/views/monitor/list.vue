@@ -51,7 +51,7 @@ const stopMonitor = async (row: IMonitorData) => {
 };
 
 const getExecTime = (cronTime: string) => {
-  const num = parseInt(cronTime.trim());
+  const num = Number(cronTime);
   if (isNaN(num)) {
     return cronTime;
   } else {
@@ -160,10 +160,10 @@ watch(() => [pageSize.value, current.value], query);
             placement="top"
           >
             <div class="h-full flex align-center">
-              <i-ep-video-play class="text-blue mt-5px" />
+              <i-svg-spinners-bars-scale class="text-blue" />
             </div>
           </el-tooltip>
-          <el-tooltip
+          <!-- <el-tooltip
             content="正在停止"
             v-if="scope.row.status === 2 && btnLoading"
             placement="top"
@@ -171,14 +171,23 @@ watch(() => [pageSize.value, current.value], query);
             <div class="h-full flex align-center">
               <i-ep-video-pause class="text-red" />
             </div>
-          </el-tooltip>
+          </el-tooltip> -->
           <el-tooltip
             content="正常"
-            v-else-if="scope.row.status === 1"
+            v-else-if="scope.row.status === 1 && scope.row.nextTime"
             placement="top"
           >
             <div class="h-full flex align-center">
               <i-ep-select class="text-green" />
+            </div>
+          </el-tooltip>
+          <el-tooltip
+            content="没有可用的执行时间"
+            v-else-if="!scope.row.nextTime"
+            placement="top"
+          >
+            <div class="h-full flex align-center">
+              <i-ep-video-pause class="text-red" />
             </div>
           </el-tooltip>
         </template>
@@ -191,6 +200,7 @@ watch(() => [pageSize.value, current.value], query);
             size="small"
             v-if="scope.row.status === 1"
             :loading="btnLoading"
+            :disabled="!scope.row.nextTime"
             @click="startMonitor(scope.row)"
           >
             启动

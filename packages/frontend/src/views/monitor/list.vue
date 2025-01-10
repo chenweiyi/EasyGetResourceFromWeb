@@ -241,7 +241,7 @@ watch(() => [pageSize.value, current.value], query);
     <el-dialog
       v-model="visible"
       title="编辑监控单"
-      width="1100px"
+      width="800px"
       :close-on-click-modal="false"
       :destroy-on-close="true"
     >

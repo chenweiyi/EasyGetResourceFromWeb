@@ -3,23 +3,78 @@ const props = defineProps<{
   id?: number;
 }>();
 
+type IMonitorFormType = Omit<IMonitorType, 'cronTime'> & {
+  cronTimeStamp: string;
+  cronRuleTime: string;
+  execTotalNum: number;
+  cronType: string;
+};
+
 const emit = defineEmits(['close']);
 
 const router = useRouter();
-const form = ref<IMonitorType & { execTotalNum?: number }>({
+const form = ref<IMonitorFormType>({
   name: '',
   descr: '',
   taskIds: [],
   taskFlow: '',
-  cronTime: '',
+  execTotalNum: 0,
+  cronTimeStamp: '',
+  cronRuleTime: '',
+  cronType: 'cron',
 });
 
 const rules = ref({
   name: [{ required: true, message: '请输入监控单名称', trigger: 'blur' }],
   taskIds: [{ required: true, message: '请选择任务', trigger: 'change' }],
   taskFlow: [{ required: true, message: '请输入任务流程', trigger: 'blur' }],
-  cronTime: [
-    { required: true, message: '请选择执行时间', trigger: 'blur' },
+  cronType: [{ required: true, message: '请选择时间类型', trigger: 'change' }],
+  cronTimeStamp: [
+    {
+      validator: (
+        rule: any,
+        value: string,
+        callback: (error?: Error) => void,
+      ) => {
+        if (form.value.cronType === 'specific' && !value) {
+          callback(new Error('请选择时间'));
+        } else {
+          callback();
+        }
+      },
+      trigger: 'change',
+    },
+    {
+      asyncValidator: async (rule: any, value: string) => {
+        try {
+          await judgeCronTime(
+            { cronTime: dayjs(value).valueOf() + '' },
+            {
+              notAlertWhenError: 1,
+            },
+          );
+        } catch (error) {
+          throw new Error((error as { msg: string }).msg);
+        }
+      },
+      trigger: 'change',
+    },
+  ],
+  cronRuleTime: [
+    {
+      validator: (
+        rule: any,
+        value: string,
+        callback: (error?: Error) => void,
+      ) => {
+        if (form.value.cronType === 'cron' && !value) {
+          callback(new Error('请填写时间规则'));
+        } else {
+          callback();
+        }
+      },
+      trigger: 'blur',
+    },
     {
       asyncValidator: async (rule: any, value: string) => {
         try {
@@ -37,6 +92,11 @@ const rules = ref({
     },
   ],
 });
+
+const cronTypeOptions = ref([
+  { label: '时间点', value: 'specific' },
+  { label: 'cron规则', value: 'cron' },
+]);
 
 const formRef = ref<FormInstance>();
 const loading = ref(false);
@@ -57,6 +117,19 @@ const getTasks = async () => {
   }
 };
 
+const handleTaskChange = (val: string[]) => {
+  form.value.taskFlow = JSON.stringify(val);
+};
+
+const getCronTime = () => {
+  if (form.value.cronType === 'cron') {
+    return form.value.cronRuleTime;
+  } else if (form.value.cronType === 'specific') {
+    return dayjs(form.value.cronTimeStamp).valueOf();
+  }
+  return '';
+};
+
 const submit = async () => {
   if (!formRef.value) return;
   formRef.value.validate(async (valid, fields) => {
@@ -73,7 +146,7 @@ const submit = async () => {
             descr: form.value.descr,
             taskIds: form.value.taskIds,
             taskFlow: form.value.taskFlow,
-            cronTime: form.value.cronTime,
+            cronTime: getCronTime(),
           });
           ElMessage.success('更新成功');
           emit('close');
@@ -83,7 +156,7 @@ const submit = async () => {
             descr: form.value.descr,
             taskIds: form.value.taskIds,
             taskFlow: form.value.taskFlow,
-            cronTime: form.value.cronTime,
+            cronTime: getCronTime(),
           });
           ElMessage.success('添加成功');
           router.push({
@@ -112,8 +185,17 @@ const query = async () => {
     loading.value = true;
     const monitor = await getMonitorById(props.id);
     console.log('monitor:', monitor);
-    form.value = monitor[0];
-    cache.value = JSON.stringify(monitor[0]);
+    const cronTime = monitor[0].cronTime;
+    const isCronRuleType = isNaN(Number(cronTime));
+    form.value = {
+      ...monitor[0],
+      cronType: !isCronRuleType ? 'specific' : 'cron',
+      cronRuleTime: isCronRuleType ? monitor[0].cronTime : '',
+      cronTimeStamp: !isCronRuleType
+        ? dayjs(+monitor[0].cronTime).format('YYYY-MM-DD HH:mm:ss')
+        : '',
+    };
+    cache.value = JSON.stringify(form.value);
   } catch (error) {
     console.error(error);
   } finally {
@@ -204,6 +286,7 @@ watch(
             clearable
             multiple
             :disabled="!!props.id && form.execTotalNum! > 0"
+            @change="handleTaskChange"
           >
             <el-option
               v-for="item in tasks"
@@ -236,17 +319,52 @@ watch(
             <div class="flex items-center">
               <span class="mr-4px">执行时间</span>
               <el-tooltip
-                content="cron参考 https://github.com/kelektiv/node-cron"
+                content="cron规则参考 https://crontab.guru/"
                 placement="top"
               >
                 <i-ep-info-filled class="text-gray-400 w-16px h-16px" />
               </el-tooltip>
             </div>
           </template>
-          <el-input
-            v-model="form.cronTime"
-            placeholder="cron时间规则: 秒 分 时 日 月 周 ；或者指定一个时间戳"
-          />
+          <div class="flex items-center w-full">
+            <el-form-item prop="cronType" class="w-150px! mr-12px">
+              <el-select
+                placeholder="请选择时间类型"
+                v-model="form.cronType"
+                clearable
+              >
+                <el-option
+                  v-for="item in cronTypeOptions"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item
+              prop="cronRuleTime"
+              class="flex-1"
+              v-if="form.cronType === 'cron'"
+            >
+              <el-input
+                v-model="form.cronRuleTime"
+                placeholder="cron时间规则: 秒 分 时 日 月 周，秒可不指定。"
+              />
+            </el-form-item>
+            <el-form-item
+              prop="cronTimeStamp"
+              class="flex-1"
+              v-if="form.cronType === 'specific'"
+            >
+              <el-date-picker
+                class="w-full!"
+                v-model="form.cronTimeStamp"
+                value-format="YYYY-MM-DD HH:mm:ss"
+                type="datetime"
+                placeholder="请选择时间点"
+              />
+            </el-form-item>
+          </div>
         </el-form-item>
       </el-form>
     </div>

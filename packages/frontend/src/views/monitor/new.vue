@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ClickOutside as vClickOutside } from 'element-plus';
 const props = defineProps<{
   id?: number;
 }>();
@@ -103,6 +104,10 @@ const loading = ref(false);
 const tasks = ref<ITaskData[]>([]);
 const cache = ref(JSON.stringify(form.value));
 const changed = ref(false);
+const nextTimes = ref<string[]>([]);
+const seeNextTimesRef = ref();
+const poppoverRef = ref();
+const execTimeLoading = ref(false);
 
 const getTasks = async () => {
   try {
@@ -172,6 +177,28 @@ const submit = async () => {
       console.log('error submit...');
     }
   });
+};
+
+const seeNextTimes = async () => {
+  if (!form.value.cronRuleTime) return;
+  try {
+    execTimeLoading.value = true;
+    nextTimes.value = [];
+    await sleep();
+    const res = await getCronExecTimes({
+      cronTime: form.value.cronRuleTime,
+      next: 10,
+    });
+    nextTimes.value = res || [];
+  } catch (error) {
+    nextTimes.value = [];
+  } finally {
+    execTimeLoading.value = false;
+  }
+};
+
+const onClickOutside = () => {
+  unref(poppoverRef).popperRef?.delayHide?.();
 };
 
 const reset = () => {
@@ -343,13 +370,24 @@ watch(
             </el-form-item>
             <el-form-item
               prop="cronRuleTime"
-              class="flex-1"
+              class="flex-1 flex"
               v-if="form.cronType === 'cron'"
             >
               <el-input
+                class="flex-1 mr-8px"
                 v-model="form.cronRuleTime"
                 placeholder="cron时间规则: 秒 分 时 日 月 周，秒可不指定。"
               />
+
+              <el-button
+                ref="seeNextTimesRef"
+                type="primary"
+                size="small"
+                v-click-outside="onClickOutside"
+                :disabled="!form.cronRuleTime || execTimeLoading"
+                @click="seeNextTimes"
+                >查看执行时间</el-button
+              >
             </el-form-item>
             <el-form-item
               prop="cronTimeStamp"
@@ -368,6 +406,27 @@ watch(
         </el-form-item>
       </el-form>
     </div>
+    <el-popover
+      ref="poppoverRef"
+      placement="top"
+      width="200"
+      trigger="click"
+      virtual-triggering
+      :virtual-ref="seeNextTimesRef"
+    >
+      <div
+        class="min-h-100px next-times flex flex-wrap items-center"
+        v-loading="execTimeLoading"
+      >
+        <div
+          v-for="(time, index) in nextTimes"
+          :key="index"
+          class="mr-12px text-gray-500"
+        >
+          {{ index + 1 }}. {{ time }}
+        </div>
+      </div>
+    </el-popover>
   </div>
 </template>
 

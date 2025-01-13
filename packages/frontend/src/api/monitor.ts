@@ -124,3 +124,14 @@ export const judgeCronTime: (
     headers,
   });
 };
+
+export const getCronExecTimes: (params: {
+  cronTime: string;
+  next: number;
+}) => Promise<string[] | null> = params => {
+  return axios({
+    url: '/common/cron/exectimes',
+    method: 'get',
+    params,
+  });
+};

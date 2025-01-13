@@ -9,6 +9,11 @@ export type IJudgeCronRequestBody = {
   cronTime: string;
 };
 
+export type IGetCronExecTimesQuery = {
+  cronTime: string;
+  next: number;
+};
+
 export const judgeCronTime = async (data: IJudgeCronRequestBody) => {
   const { cronTime } = data;
   let time: string = cronTime.trim();
@@ -46,4 +51,34 @@ export const judgeCronTime = async (data: IJudgeCronRequestBody) => {
   if (date2 - date1 < intervalMS) {
     throw new Error(`执行间隔时间过短，不少于 ${interval} s`);
   }
+};
+
+export const getCronExecTimes = async (query: IGetCronExecTimesQuery) => {
+  const { cronTime, next } = query;
+  let time: string = cronTime.trim();
+  let ct: string | Date = time;
+
+  if (!isNaN(Number(time))) {
+    // 兼容时间戳
+    ct = new Date(+time);
+  }
+
+  const job = CronJob.from({
+    cronTime: ct,
+    onTick: async () => {},
+    start: false,
+    timeZone: 'Asia/Shanghai',
+  });
+
+  const dates = job.nextDates(next);
+  if (!dates.length && typeof ct === 'object') {
+    // 兼容时间戳
+    return;
+  }
+
+  return dates.map(date =>
+    dayjs(date.setZone('Asia/Shanghai').valueOf()).format(
+      'YYYY-MM-DD HH:mm:ss',
+    ),
+  );
 };

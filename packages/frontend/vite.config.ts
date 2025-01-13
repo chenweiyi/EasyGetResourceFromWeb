@@ -55,7 +55,7 @@ export default defineConfig({
           type: true,
         },
       ],
-      dirs: ['./src/api', './src/components'],
+      dirs: ['./src/api', './src/components', './src/utils'],
     }),
     Components({
       resolvers: [

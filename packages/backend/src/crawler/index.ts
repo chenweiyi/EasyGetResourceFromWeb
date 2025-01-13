@@ -58,8 +58,8 @@ const crawler = async (crawlerOptions: ICrawlerOptions, pre?: ITaskField[]) => {
     } else {
       const content = await page.content();
       const $ = cheerio.load(content);
-      const func = new Function('$', 'pre', code)();
-      val = func($, pre);
+      const func = new Function('$', 'page', 'pre', code)();
+      val = await func($, page, pre);
     }
     result.push({
       ...field,

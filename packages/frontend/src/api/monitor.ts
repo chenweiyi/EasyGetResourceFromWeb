@@ -27,6 +27,7 @@ export type IMonitorListData = {
 
 export type IMonitorRecord = {
   id: number;
+  name: string;
   monitorId: number;
   startTime: string;
   endTime: string;

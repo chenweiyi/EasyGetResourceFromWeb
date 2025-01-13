@@ -39,6 +39,7 @@ export type ITaskField = {
 
 export type ITaskRecord = {
   id: number;
+  name: string;
   taskId: number;
   url: string;
   startTime: string;

@@ -284,10 +284,7 @@ watch(
             </el-table-column>
             <el-table-column prop="unit" label="字段单位" width="140">
               <template #default="scope">
-                <el-form-item
-                  :rules="scope.row.type === 'number' ? fieldsRules.unit : {}"
-                  :prop="'fields.' + scope.$index + '.unit'"
-                >
+                <el-form-item>
                   <el-input
                     v-model="scope.row.unit"
                     placeholder="请输入字段单位"

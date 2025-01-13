@@ -26,10 +26,10 @@ const getStatusType = (status: number) => {
   }
 };
 
-const seeDetial = (result: string) => {
+const seeDetial = (row: IMonitorRecord) => {
   ElMessageBox({
-    title: '查看结果',
-    message: h(JsonViewer, { result }),
+    title: `查看结果 - [${row.id}]${row.name}`,
+    message: h(JsonViewer, { result: row.result }),
     showConfirmButton: false,
     customClass: 'json-viewer-box',
   });
@@ -71,7 +71,7 @@ watch(() => [pageSize.value, current.value], query);
             :key="item"
             class="mr-4px"
           >
-            {{ item }} [{{ scope.row.taskIds[index] }}]
+            [{{ scope.row.taskIds[index] }}] {{ item }}
           </el-tag>
         </template>
       </el-table-column>
@@ -87,11 +87,7 @@ watch(() => [pageSize.value, current.value], query);
       <el-table-column prop="execTime" label="执行耗时（s）" />
       <el-table-column prop="result" label="执行结果" show-overflow-tooltip>
         <template #default="scope">
-          <el-button
-            type="primary"
-            size="small"
-            @click="seeDetial(scope.row.result)"
-          >
+          <el-button type="primary" size="small" @click="seeDetial(scope.row)">
             查看结果
           </el-button>
         </template>

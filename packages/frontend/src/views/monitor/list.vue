@@ -159,7 +159,7 @@ watch(() => [pageSize.value, current.value], query);
             "
             placement="top"
           >
-            <div class="h-full flex align-center">
+            <div class="h-full w-20px w-auto flex align-center">
               <i-svg-spinners-bars-scale class="text-blue" />
             </div>
           </el-tooltip>
@@ -177,7 +177,7 @@ watch(() => [pageSize.value, current.value], query);
             v-else-if="scope.row.status === 1 && scope.row.nextTime"
             placement="top"
           >
-            <div class="h-full flex align-center">
+            <div class="h-full w-20px flex align-center">
               <i-ep-select class="text-green" />
             </div>
           </el-tooltip>
@@ -186,7 +186,7 @@ watch(() => [pageSize.value, current.value], query);
             v-else-if="!scope.row.nextTime"
             placement="top"
           >
-            <div class="h-full flex align-center">
+            <div class="h-full w-20px flex align-center">
               <i-ep-video-pause class="text-red" />
             </div>
           </el-tooltip>

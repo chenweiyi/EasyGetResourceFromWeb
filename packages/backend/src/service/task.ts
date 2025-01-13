@@ -3,7 +3,7 @@ import { getConn, getPool } from '../utils/mysql';
 import debugLibrary from 'debug';
 import dayjs from 'dayjs';
 import { crawler, type ICrawlerOptions } from '../crawler/index';
-import { modifyTableField } from './util';
+import { modifyTableField } from '../utils/business';
 
 const debug = debugLibrary('task:service');
 

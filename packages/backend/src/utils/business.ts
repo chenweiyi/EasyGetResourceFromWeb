@@ -1,5 +1,7 @@
+import Koa from 'koa';
+import debugLibrary from 'debug';
 import { PoolConnection, ResultSetHeader } from 'mysql2/promise';
-import { getPool } from '../utils/mysql';
+import { getPool } from './mysql';
 import { CronJob } from 'cron';
 import dayjs from 'dayjs';
 
@@ -10,6 +12,29 @@ export type IModifyTableFieldOption = {
   conn?: PoolConnection;
   field?: string;
   table?: string;
+};
+
+export const commonResponse = async (
+  ctx: Koa.Context,
+  task: () => Promise<any>,
+  debug?: debugLibrary.Debugger,
+) => {
+  try {
+    const res = await task();
+    ctx.status = 200;
+    ctx.body = {
+      code: 0,
+      msg: 'success',
+      data: res,
+    };
+  } catch (error) {
+    debug?.(error);
+    ctx.status = 200;
+    ctx.body = {
+      code: 500,
+      msg: error.message,
+    };
+  }
 };
 
 export const modifyTableField = async (option: IModifyTableFieldOption) => {

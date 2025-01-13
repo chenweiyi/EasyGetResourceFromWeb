@@ -118,7 +118,7 @@ export const judgeCronTime: (
   headers?: Record<string, any>,
 ) => Promise<void> = (data, headers = {}) => {
   return axios({
-    url: '/monitor/cron/judge',
+    url: '/common/judge/cron',
     method: 'post',
     data,
     headers,

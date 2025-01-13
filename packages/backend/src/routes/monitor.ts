@@ -1,6 +1,6 @@
 import RouterEngine from '@koa/router';
 import MonitorController from '../controller/monitor';
-import { JudgeCronRequestBody, MyContext, MyQueryContext } from '../@types/api';
+import { MyContext, MyQueryContext } from '../@types/api';
 
 const genMonitorRoute = (router: RouterEngine) => {
   router.post('/monitor/add', MonitorController.postAddMonitor);
@@ -27,7 +27,6 @@ const genMonitorRoute = (router: RouterEngine) => {
     '/monitor/record/list',
     MonitorController.getMonitorRecord,
   );
-  router.post('/monitor/cron/judge', MonitorController.postCronJudge);
 };
 
 export { genMonitorRoute };

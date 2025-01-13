@@ -6,8 +6,6 @@ import {
   execMonitorById,
   getMonitorById,
   getMonitorRecord,
-  IJudgeCronRequestBody,
-  judgeCronTime,
   queryMonitorList,
   stopAllMonitor,
   stopMonitorById,
@@ -16,11 +14,11 @@ import {
   type IMonitorWithId,
 } from '../service/monitor';
 import { MyContext, MyQueryContext } from '../@types/api';
-import { commonResponse } from './util';
+import { commonResponse } from '../utils/business';
 
 const debug = debugLibrary('monitor:controller');
 
-export default class TaskController {
+export default class MonitorController {
   public static async postAddMonitor(ctx: Koa.Context) {
     const body: IMonitorType = ctx.request.body as IMonitorType;
     debug('body:', body);
@@ -87,11 +85,5 @@ export default class TaskController {
     const query = ctx.query;
     debug('query:', query);
     await commonResponse(ctx, async () => getMonitorRecord(query), debug);
-  }
-
-  public static async postCronJudge(ctx: Koa.Context) {
-    const body = ctx.request.body as unknown as IJudgeCronRequestBody;
-    debug('body:', body);
-    await commonResponse(ctx, async () => await judgeCronTime(body));
   }
 }

@@ -12,7 +12,7 @@ import {
   updateTaskById,
 } from '../service/task';
 import debugLibrary from 'debug';
-import { commonResponse } from './util';
+import { commonResponse } from '../utils/business';
 
 const debug = debugLibrary('task:controller');
 export default class TaskController {

@@ -18,6 +18,7 @@ export const commonResponse = async (
   ctx: Koa.Context,
   task: () => Promise<any>,
   debug?: debugLibrary.Debugger,
+  debugFilter?: string[],
 ) => {
   try {
     const res = await task();
@@ -28,7 +29,16 @@ export const commonResponse = async (
       data: res,
     };
   } catch (error) {
-    debug?.(error);
+    if (debugFilter?.length) {
+      if (!debugFilter.some(f => error.message?.includes(f))) {
+        debug?.(error);
+      } else {
+        // 轻输出，进输入message
+        debug?.(error.message);
+      }
+    } else {
+      debug?.(error);
+    }
     ctx.status = 200;
     ctx.body = {
       code: 500,
@@ -83,4 +93,13 @@ export const getNextTime = (cronTime: string) => {
   } catch {
     return null;
   }
+};
+
+export const genRandomNumber = (length: number) => {
+  const chars = '0123456789';
+  let result = '';
+  for (let i = length; i > 0; --i) {
+    result += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return result;
 };

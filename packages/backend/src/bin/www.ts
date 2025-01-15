@@ -6,7 +6,11 @@ import http from 'http';
 // import '../utils/abortControllerPolyfill';
 // import '../utils/fetchPolyfill';
 import app from '../app';
-import { clearZombieCron, restoreData } from '../utils/initHelper';
+import {
+  clearZombieCron,
+  restoreData,
+  clearEmailVerifyCode,
+} from '../utils/initHelper';
 
 const debug = debugLibrary('crawler');
 
@@ -86,4 +90,5 @@ function onListening() {
 
   restoreData();
   clearZombieCron();
+  clearEmailVerifyCode();
 }

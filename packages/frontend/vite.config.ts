@@ -64,7 +64,7 @@ export default defineConfig({
           importStyle: 'css',
         }),
       ],
-      globs: ['./src/components/**/*.vue'],
+      globs: ['./src/components/**/*.vue', './src/layouts/**/*.vue'],
     }),
   ],
   resolve: {

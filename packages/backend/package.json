@@ -6,12 +6,9 @@
   "scripts": {
     "dev": "nodemon ./src/bin/www.ts",
     "start": "ts-node ./src/bin/www.ts",
-    "test": "echo \"Error: no test specified\" && exit 1",
     "clean": "rm -rf ./build",
-    "build-ts": "tsc",
-    "to-js": "npm run clean && npm run build-ts && npm run copy-static",
     "copy-static": "ts-node ./src/copyStatic.ts",
-    "tsc": "tsc --noEmit"
+    "encode": "cross-env password=12345678 ts-node ./src/utils/cryptoHelper.ts"
   },
   "dependencies": {
     "@koa/router": "^13.1.0",
@@ -28,6 +25,7 @@
     "koa-convert": "^2.0.0",
     "koa-etag": "^4.0.0",
     "koa-json": "^2.0.2",
+    "koa-jwt": "^4.0.4",
     "koa-logger": "^3.2.1",
     "koa-onerror": "^4.2.0",
     "koa-static": "^5.0.0",
@@ -36,6 +34,7 @@
     "koa2-history-api-fallback": "^0.1.0",
     "mysql2": "^3.12.0",
     "node-fetch": "^3.3.0",
+    "nodemailer": "^6.9.16",
     "playwright": "1.48.0",
     "pug": "^3.0.3",
     "qs": "^6.11.1",

@@ -39,22 +39,24 @@ watch(
 </script>
 
 <template>
-  <el-card class="menu-card">
-    <ul class="menus">
-      <li
-        v-for="menu in menus"
-        :key="menu.value"
-        class="menu-item"
-        :class="[menu.value === active ? 'active' : '']"
-        @click="clickMenu(menu)"
-      >
-        {{ menu.label }}
-      </li>
-    </ul>
-  </el-card>
-  <el-card class="mt-12px min-h-500px">
-    <RouterView />
-  </el-card>
+  <BusinessLayout>
+    <el-card class="menu-card">
+      <ul class="menus">
+        <li
+          v-for="menu in menus"
+          :key="menu.value"
+          class="menu-item"
+          :class="[menu.value === active ? 'active' : '']"
+          @click="clickMenu(menu)"
+        >
+          {{ menu.label }}
+        </li>
+      </ul>
+    </el-card>
+    <el-card class="mt-12px min-h-500px">
+      <RouterView />
+    </el-card>
+  </BusinessLayout>
 </template>
 
 <style scoped lang="less">

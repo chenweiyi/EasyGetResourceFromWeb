@@ -32,6 +32,7 @@ declare global {
   const getCronExecTimes: typeof import('./src/api/monitor')['getCronExecTimes']
   const getCurrentInstance: typeof import('vue')['getCurrentInstance']
   const getCurrentScope: typeof import('vue')['getCurrentScope']
+  const getEmailVerifyCode: typeof import('./src/api/login')['getEmailVerifyCode']
   const getMonitorById: typeof import('./src/api/monitor')['getMonitorById']
   const getMonitorList: typeof import('./src/api/monitor')['getMonitorList']
   const getMonitorRecord: typeof import('./src/api/monitor')['getMonitorRecord']
@@ -45,6 +46,7 @@ declare global {
   const isReadonly: typeof import('vue')['isReadonly']
   const isRef: typeof import('vue')['isRef']
   const judgeCronTime: typeof import('./src/api/monitor')['judgeCronTime']
+  const login: typeof import('./src/api/login')['login']
   const markRaw: typeof import('vue')['markRaw']
   const nextTick: typeof import('vue')['nextTick']
   const onActivated: typeof import('vue')['onActivated']
@@ -67,6 +69,7 @@ declare global {
   const reactive: typeof import('vue')['reactive']
   const readonly: typeof import('vue')['readonly']
   const ref: typeof import('vue')['ref']
+  const registerUser: typeof import('./src/api/login')['registerUser']
   const resolveComponent: typeof import('vue')['resolveComponent']
   const shallowReactive: typeof import('vue')['shallowReactive']
   const shallowReadonly: typeof import('vue')['shallowReadonly']
@@ -107,6 +110,9 @@ declare global {
   // @ts-ignore
   export type { FormInstance } from 'element-plus'
   import('element-plus')
+  // @ts-ignore
+  export type { ILoginData, IEmailVerifyCodeParams, IRegisterParams } from './src/api/login'
+  import('./src/api/login')
   // @ts-ignore
   export type { IMonitorType, IMonitorWithId, IMonitorData, IMonitorListData, IMonitorRecord, IMonitorRecordData, IJudgeCronTime } from './src/api/monitor'
   import('./src/api/monitor')

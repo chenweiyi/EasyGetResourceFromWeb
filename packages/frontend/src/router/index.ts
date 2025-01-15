@@ -5,6 +5,24 @@ const routes: RouteRecordRaw[] = [
     redirect: '/task',
   },
   {
+    path: '/login',
+    name: 'login',
+    component: () => import('../views/Login.vue'),
+    meta: {
+      title: '登录',
+      menu: false,
+    },
+  },
+  {
+    path: '/register',
+    name: 'register',
+    component: () => import('../views/Register.vue'),
+    meta: {
+      title: '注册',
+      menu: false,
+    },
+  },
+  {
     path: '/monitor',
     name: 'monitor',
     redirect: '/monitor/record',

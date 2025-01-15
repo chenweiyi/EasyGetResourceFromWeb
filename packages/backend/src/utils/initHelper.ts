@@ -78,4 +78,30 @@ const clearZombieCron = () => {
   }, INTERVEL_CHECK_ZOMBIE_CRON);
 };
 
-export { restoreData, clearZombieCron };
+const clearEmailVerifyCode = async () => {
+  setInterval(async () => {
+    const mailValidators = app.context.mailValidators;
+    if (mailValidators.size > 0) {
+      const clearUids: string[] = [];
+      const life = +process.env.MAIL_VALID_LIFE_TIME * 60;
+
+      for (let [uid, value] of mailValidators) {
+        const { time } = value;
+        const now = dayjs();
+        const date = dayjs(time);
+        if (now.diff(date, 's') > life) {
+          clearUids.push(uid);
+        }
+      }
+
+      if (clearUids.length === 0) return;
+
+      debug(`ready to clear mail validators: [${clearUids}]`);
+      for (let uid of clearUids) {
+        mailValidators.delete(uid);
+      }
+    }
+  }, 1000);
+};
+
+export { restoreData, clearZombieCron, clearEmailVerifyCode };

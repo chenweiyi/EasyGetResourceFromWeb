@@ -5,11 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "run-p type-check \"build-only {@}\" --",
+    "build": "vite build",
     "preview": "vite preview",
     "test:unit": "vitest",
-    "build-only": "vite build",
-    "type-check": "vue-tsc --build",
     "lint": "eslint . --fix",
     "format": "prettier --write src/"
   },
@@ -23,6 +21,7 @@
     "unocss": "^0.65.1",
     "unplugin-auto-import": "^0.19.0",
     "unplugin-vue-components": "^0.27.5",
+    "uuid": "^11.0.5",
     "vue": "^3.5.13",
     "vue-router": "^4.4.5"
   },

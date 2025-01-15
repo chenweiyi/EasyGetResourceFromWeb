@@ -13,6 +13,7 @@ import conditional from './utils/koa-conditional-get';
 import { cronMap } from './crawler/cronInstance';
 import { router } from './routes/index';
 import { MyContext } from './@types/api';
+import jwt from 'koa-jwt';
 
 const debug = debugLibrary('app');
 
@@ -60,6 +61,12 @@ app.use(etag());
 //   const ms = new Date().getTime() - start;
 //   debug(`${ctx.method} ${ctx.url} - ${ms}ms`);
 // });
+
+app.use(
+  jwt({ secret: process.env.secret }).unless({
+    path: [/\/user\/login/, /\/user\/verify\/code/, /\/user\/register/],
+  }),
+);
 
 // routes
 app.use(router.routes()).use(router.allowedMethods());

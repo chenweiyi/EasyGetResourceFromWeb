@@ -6,6 +6,7 @@ import { getConn } from '../utils/mysql';
 import { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import debugLibrary from 'debug';
 import { encodeStr } from '../utils/crypto';
+import jwt from 'jsonwebtoken';
 
 export type IVerifyCodeParams = {
   email: string;
@@ -184,10 +185,37 @@ export const loginUser = async (ctx: MyContext, data: ILoginUserParams) => {
     };
 
     debug('d:', d);
-    await conn.query<ResultSetHeader>('UPDATE user SET ? WHERE email = ?', [
-      d,
-      email,
-    ]);
+    const [res] = await conn.query<ResultSetHeader>(
+      'UPDATE user SET ? WHERE email = ?',
+      [d, email],
+    );
+
+    if (res.affectedRows === 0) {
+      throw new Error('更新用户信息失败');
+    }
+
+    const [data] = await conn.query<RowDataPacket[]>(
+      'SELECT * FROM user WHERE email = ?',
+      [email],
+    );
+
+    const token = jwt.sign(
+      {
+        email,
+        id: res.insertId,
+        lastLoginTime: data[0].last_login_time,
+        status: data[0].status,
+        type: data[0].type,
+      },
+      process.env.secret,
+      {
+        expiresIn: isNaN(Number(process.env.expire))
+          ? process.env.expire
+          : Number(process.env.expire),
+      },
+    );
+
+    ctx.response.set('token', token);
   } catch (error) {
     throw error;
   } finally {

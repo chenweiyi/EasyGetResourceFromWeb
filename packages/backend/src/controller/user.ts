@@ -42,6 +42,7 @@ export default class UserController {
     await commonResponse(ctx, async () => await loginUser(ctx, body), debug, [
       '邮箱或密码错误',
       '账号已被禁用或删除',
+      '更新用户信息失败',
     ]);
   }
 }

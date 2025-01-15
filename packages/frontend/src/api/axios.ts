@@ -15,6 +15,10 @@ const service = axios.create(AXIOS_DEFAULT_CONFIG);
 // request interceptors
 service.interceptors.request.use(
   request => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      request.headers['Authorization'] = `Bearer ${token}`;
+    }
     if (request.method === 'get') {
       request.params = Object.assign(request.params || {}, {
         _: new Date().getTime(),
@@ -40,6 +44,10 @@ service.interceptors.response.use(
   async response => {
     const res = response.data;
     const config = response.config;
+    const headers = response.headers;
+    if (headers['token']) {
+      localStorage.setItem('token', headers['token']);
+    }
     if (res.code === 0) {
       return res.data;
     } else {

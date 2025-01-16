@@ -1,4 +1,3 @@
-import { genRandomNumber, getDirname } from '../utils/business';
 import { transporter } from '../utils/mail';
 import { MyContext } from '../@types/api';
 import dayjs from 'dayjs';
@@ -9,6 +8,8 @@ import { encodeStr } from '../utils/crypto';
 import jwt from 'jsonwebtoken';
 import pug from 'pug';
 import path from 'node:path';
+import { genRandomNumber, getDirname } from '../utils/tool';
+import { setJwtToken } from '../utils/business';
 
 export type IVerifyCodeParams = {
   email: string;
@@ -283,23 +284,13 @@ export const loginUser = async (ctx: MyContext, data: ILoginUserParams) => {
       [email],
     );
 
-    const token = jwt.sign(
-      {
-        email,
-        id: res.insertId,
-        lastLoginTime: data[0].last_login_time,
-        status: data[0].status,
-        type: data[0].type,
-      },
-      process.env.secret,
-      {
-        expiresIn: isNaN(Number(process.env.expire))
-          ? process.env.expire
-          : Number(process.env.expire),
-      },
-    );
-
-    ctx.response.set('token', token);
+    setJwtToken(ctx, {
+      email,
+      id: res.insertId,
+      lastLoginTime: data[0].last_login_time,
+      status: data[0].status,
+      type: data[0].type,
+    });
   } catch (error) {
     throw error;
   } finally {

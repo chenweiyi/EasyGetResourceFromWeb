@@ -14,6 +14,8 @@ import {
 
 const debug = debugLibrary('crawler');
 
+// debug(process.env);
+
 /**
  * Get port from environment and store in Express.
  */

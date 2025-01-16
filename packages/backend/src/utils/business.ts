@@ -4,8 +4,8 @@ import { PoolConnection, ResultSetHeader } from 'mysql2/promise';
 import { getPool } from './mysql';
 import { CronJob } from 'cron';
 import dayjs from 'dayjs';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import jwt from 'jsonwebtoken';
+import { IJWTUser } from '../@types/api';
 
 export type IModifyTableFieldOption = {
   id: number;
@@ -97,15 +97,12 @@ export const getNextTime = (cronTime: string) => {
   }
 };
 
-export const genRandomNumber = (length: number) => {
-  const chars = '0123456789';
-  let result = '';
-  for (let i = length; i > 0; --i) {
-    result += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return result;
-};
+export const setJwtToken = async (ctx: Koa.Context, params: IJWTUser) => {
+  const token = jwt.sign(params, process.env.secret, {
+    expiresIn: isNaN(Number(process.env.expire))
+      ? process.env.expire
+      : Number(process.env.expire),
+  });
 
-export const getDirname = () => {
-  return dirname(fileURLToPath(import.meta.url));
+  ctx.response.set('token', token);
 };

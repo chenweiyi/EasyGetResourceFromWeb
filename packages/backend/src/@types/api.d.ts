@@ -10,9 +10,28 @@ interface IMailValidatorValue {
   time: number;
 }
 
+type IJWTUser = {
+  email: string;
+  id: number;
+  lastLoginTime: string;
+  status: number;
+  type: number;
+};
+
+type ISessionJWTUser = IJWTUser & {
+  iat: number;
+  exp: number;
+};
+
 interface MyContext extends Context {
   cronMap: Map<number, CronJob>;
   mailValidators: Map<string, IMailValidatorValue>;
+}
+
+interface MyStateContext extends MyContext {
+  state: {
+    user: ISessionJWTUser;
+  };
 }
 
 interface JudgeCronRequestBody {

@@ -8,11 +8,12 @@ const form = ref({
   email: '',
   code: '',
   password: '',
+  confirmPassword: '',
 });
 const uid = ref('');
 const countDown = ref<number>();
 const codeLoading = ref(false);
-const registerLoading = ref(false);
+const loading = ref(false);
 
 let timer: ReturnType<typeof setInterval> | undefined = undefined;
 
@@ -52,6 +53,25 @@ const rules = reactive({
       min: 6,
     },
   ],
+  confirmPassword: [
+    { required: true, message: '请输入确认密码', trigger: 'blur' },
+    {
+      required: true,
+      message: '密码长度不能小于6位',
+      trigger: 'blur',
+      min: 6,
+    },
+    {
+      trigger: 'blur',
+      validator: (rule: any, value: string, callback: any) => {
+        if (value !== form.value.password) {
+          callback(new Error('两次密码不一致'));
+        } else {
+          callback();
+        }
+      },
+    },
+  ],
 });
 
 const getValidCode = async () => {
@@ -62,7 +82,7 @@ const getValidCode = async () => {
     await getEmailVerifyCode({
       email: form.value.email,
       uid: uid.value,
-      type: 'register',
+      type: 'findpassword',
     });
     countDown.value = 120;
     timer = setInterval(() => {
@@ -78,34 +98,28 @@ const getValidCode = async () => {
   }
 };
 
-const register = async () => {
+const save = async () => {
   if (!formRef.value) return;
   formRef.value.validate(async (valid: boolean) => {
     if (valid) {
-      registerLoading.value = true;
+      loading.value = true;
       try {
-        await registerUser({
+        await findPassword({
           email: form.value.email,
           password: form.value.password,
           code: form.value.code,
           uid: uid.value,
         });
-        ElMessage.success('注册成功');
+        ElMessage.success('修改密码成功');
         router.push({
           name: 'login',
         });
       } catch (e) {
         form.value.code = '';
       } finally {
-        registerLoading.value = false;
+        loading.value = false;
       }
     }
-  });
-};
-
-const login = () => {
-  router.push({
-    name: 'login',
   });
 };
 </script>
@@ -146,10 +160,19 @@ const login = () => {
             <span class="ml-2px" v-if="countDown! > 0">{{ countDown! }}</span>
           </el-button>
         </el-form-item>
-        <el-form-item label="密码" prop="password">
+        <el-form-item label="新密码" prop="password">
           <el-input
             v-model="form.password"
-            placeholder="请输入密码"
+            placeholder="请输入新密码"
+            show-password
+            autocomplete="new-password"
+            clearable
+          />
+        </el-form-item>
+        <el-form-item label="确认密码" prop="confirmPassword">
+          <el-input
+            v-model="form.confirmPassword"
+            placeholder="请输入确认密码"
             show-password
             autocomplete="new-password"
             clearable
@@ -159,22 +182,11 @@ const login = () => {
           <el-button
             type="primary"
             class="flex-1"
-            :disabled="registerLoading"
-            @click="register"
-            >注册</el-button
+            :disabled="loading"
+            @click="save"
+            >修改密码</el-button
           >
         </el-form-item>
-        <div class="flex justify-end items-center">
-          <span class="text-gray-400 text-12px">已有账号？去</span>
-          <el-button
-            link
-            type="primary"
-            size="small"
-            class="pl-2px! pr-0!"
-            @click="login"
-            >登录</el-button
-          >
-        </div>
       </el-form>
     </div>
   </WhiteBoard>

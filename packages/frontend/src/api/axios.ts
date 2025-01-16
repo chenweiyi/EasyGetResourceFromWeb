@@ -58,6 +58,13 @@ service.interceptors.response.use(
     return Promise.reject(res);
   },
   error => {
+    console.error(error);
+    if (error.status === 401) {
+      if (import.meta.env.MODE === 'production') {
+        window.location.href = '/login';
+        return;
+      }
+    }
     ElMessage.error(error.msg || error.message || '服务错误');
     return Promise.reject(error);
   },

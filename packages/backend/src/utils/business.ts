@@ -4,6 +4,8 @@ import { PoolConnection, ResultSetHeader } from 'mysql2/promise';
 import { getPool } from './mysql';
 import { CronJob } from 'cron';
 import dayjs from 'dayjs';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
 export type IModifyTableFieldOption = {
   id: number;
@@ -102,4 +104,8 @@ export const genRandomNumber = (length: number) => {
     result += chars[Math.floor(Math.random() * chars.length)];
   }
   return result;
+};
+
+export const getDirname = () => {
+  return dirname(fileURLToPath(import.meta.url));
 };

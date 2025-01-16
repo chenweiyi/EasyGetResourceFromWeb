@@ -23,6 +23,15 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/findpassword',
+    name: 'findpassword',
+    component: () => import('../views/FindPassword.vue'),
+    meta: {
+      title: '找回密码',
+      menu: false,
+    },
+  },
+  {
     path: '/monitor',
     name: 'monitor',
     redirect: '/monitor/record',

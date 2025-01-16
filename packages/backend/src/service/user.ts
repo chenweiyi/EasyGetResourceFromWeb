@@ -1,4 +1,4 @@
-import { genRandomNumber } from '../utils/business';
+import { genRandomNumber, getDirname } from '../utils/business';
 import { transporter } from '../utils/mail';
 import { MyContext } from '../@types/api';
 import dayjs from 'dayjs';
@@ -7,10 +7,13 @@ import { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import debugLibrary from 'debug';
 import { encodeStr } from '../utils/crypto';
 import jwt from 'jsonwebtoken';
+import pug from 'pug';
+import path from 'node:path';
 
 export type IVerifyCodeParams = {
   email: string;
   uid: string;
+  type: 'register' | 'findpassword';
 };
 
 export type IRegisterUserParams = {
@@ -18,6 +21,13 @@ export type IRegisterUserParams = {
   password: string;
   uid: string;
   code: string;
+};
+
+export type IFindPasswordParams = {
+  email: string;
+  uid: string;
+  code: string;
+  password: string;
 };
 
 export type ILoginUserParams = {
@@ -31,7 +41,7 @@ export const getEmailVerifyCode = async (
   ctx: MyContext,
   query: IVerifyCodeParams,
 ) => {
-  const { email, uid } = query;
+  const { email, uid, type } = query;
 
   if (!email || !uid) {
     throw new Error(`Need email and uid, got email: ${email}, uid: ${uid}.`);
@@ -56,8 +66,14 @@ export const getEmailVerifyCode = async (
       [email],
     );
 
-    if (rows.length > 0) {
-      throw new Error('邮箱已存在');
+    if (type === 'register') {
+      if (rows.length > 0) {
+        throw new Error('邮箱已存在');
+      }
+    } else if (type === 'findpassword') {
+      if (rows.length === 0) {
+        throw new Error('该邮箱未注册');
+      }
     }
   } catch (error) {
     throw error;
@@ -79,21 +95,36 @@ export const getEmailVerifyCode = async (
     });
   }
 
+  let html = '';
+  let subject = '';
+
+  if (type === 'register') {
+    subject = 'Register Account - EasyGetResourceFromWeb';
+    html = pug.renderFile(
+      path.join(getDirname(), '../templates/register-code-email.pug'),
+      {
+        email,
+        num,
+        validLifeTime: process.env.MAIL_VALID_LIFE_TIME,
+      },
+    );
+  } else if (type === 'findpassword') {
+    subject = 'Forget Password - EasyGetResourceFromWeb';
+    html = pug.renderFile(
+      path.join(getDirname(), '../templates/findpassword-code-email.pug'),
+      {
+        email,
+        num,
+        validLifeTime: process.env.MAIL_VALID_LIFE_TIME,
+      },
+    );
+  }
+
   await transporter.sendMail({
     from: 'EasyGetResourceFromWeb 🦋 <easygetresource@163.com>',
     to: email,
-    subject: 'Send verification code',
-    text: `${email},
-
-  Hello！
-  您好！
-
-  Please fill in the following captcha within ${process.env.MAIL_VALID_LIFE_TIME} minutes: ${num}
-  请在 ${process.env.MAIL_VALID_LIFE_TIME} 分钟内填写如下验证码：${num}
-
-  Please do not reply to this email as it is sent from an unmanned mailbox.
-  请不要回复此电子邮件，因为它是无人值守的邮箱发送的。
-`,
+    subject,
+    html,
   });
 
   debug('mail send success!');
@@ -146,6 +177,59 @@ export const registerUser = async (
 
     if (res.affectedRows === 0) {
       throw new Error('添加用户失败');
+    }
+  } catch (error) {
+    throw error;
+  } finally {
+    conn.release();
+  }
+};
+
+export const findPassword = async (
+  ctx: MyContext,
+  data: IFindPasswordParams,
+) => {
+  const { email, uid, code, password } = data;
+
+  if (!email || !uid || !code || !password) {
+    throw new Error(
+      `Need email, uid, code and password, got email: ${email}, uid: ${uid}, code: ${code}, password: ${password}.`,
+    );
+  }
+
+  if (!ctx.mailValidators.has(uid)) {
+    throw new Error('验证码已过期');
+  }
+
+  if (ctx.mailValidators.get(uid).num !== code) {
+    throw new Error('验证码不正确');
+  }
+
+  const conn = await getConn();
+  try {
+    const [rows] = await conn.query<RowDataPacket[]>(
+      'SELECT * FROM user WHERE email = ?',
+      [email],
+    );
+
+    if (rows.length === 0) {
+      throw new Error('邮箱不存在');
+    }
+
+    const d = {
+      password: encodeStr(password),
+      update_time: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+    };
+
+    debug('d:', d);
+
+    const [res] = await conn.query<ResultSetHeader>(
+      'UPDATE user SET ? WHERE email = ?',
+      [d, email],
+    );
+
+    if (res.affectedRows === 0) {
+      throw new Error('更新用户信息失败');
     }
   } catch (error) {
     throw error;

@@ -64,7 +64,12 @@ app.use(etag());
 
 app.use(
   jwt({ secret: process.env.secret }).unless({
-    path: [/\/user\/login/, /\/user\/verify\/code/, /\/user\/register/],
+    path: [
+      /^\/q\/user\/login/,
+      /^\/q\/user\/verify\/code/,
+      /^\/q\/user\/register/,
+      /^(?!\/q\/).*/, // 匹配非`/q/`开头的地址
+    ],
   }),
 );
 
@@ -87,7 +92,11 @@ app.use(
 
 // error-handling
 app.on('error', (err, ctx) => {
-  debug('server error', err, ctx);
+  if (err?.message === 'Authentication Error') {
+    debug('Authentication Error');
+  } else {
+    debug('catch error:', err, ctx);
+  }
 });
 
 export default app;

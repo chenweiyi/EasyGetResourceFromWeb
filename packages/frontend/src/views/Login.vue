@@ -63,6 +63,12 @@ const register = () => {
     name: 'register',
   });
 };
+
+const findPassword = () => {
+  router.push({
+    name: 'findpassword',
+  });
+};
 </script>
 
 <template>
@@ -79,6 +85,7 @@ const register = () => {
           <el-input
             v-model="form.email"
             placeholder="请输入邮箱地址"
+            autocomplete="off"
             clearable
           />
         </el-form-item>
@@ -87,6 +94,7 @@ const register = () => {
             v-model="form.password"
             placeholder="请输入密码"
             show-password
+            autocomplete="new-password"
             clearable
           />
         </el-form-item>
@@ -98,6 +106,17 @@ const register = () => {
             >注册</el-button
           >
         </el-form-item>
+        <div class="flex justify-end items-center">
+          <span class="text-gray-400 text-12px">忘记密码？</span>
+          <el-button
+            link
+            type="primary"
+            size="small"
+            class="pl-2px! pr-0!"
+            @click="findPassword"
+            >找回密码</el-button
+          >
+        </div>
       </el-form>
     </div>
   </WhiteBoard>

@@ -6,6 +6,7 @@ export type ILoginData = {
 export type IEmailVerifyCodeParams = {
   email: string;
   uid: string;
+  type: 'register' | 'findpassword';
 };
 
 export type IRegisterParams = {
@@ -13,6 +14,13 @@ export type IRegisterParams = {
   password: string;
   code: string;
   uid: string;
+};
+
+export type IFindPasswordParams = {
+  email: string;
+  uid: string;
+  code: string;
+  password: string;
 };
 
 export const login: (data: ILoginData) => Promise<null> = data => {
@@ -36,6 +44,16 @@ export const getEmailVerifyCode: (
 export const registerUser: (data: IRegisterParams) => Promise<null> = data => {
   return axios({
     url: '/user/register',
+    method: 'post',
+    data,
+  });
+};
+
+export const findPassword: (
+  data: IFindPasswordParams,
+) => Promise<null> = data => {
+  return axios({
+    url: '/user/findpassword',
     method: 'post',
     data,
   });

@@ -2,9 +2,11 @@ import Koa from 'koa';
 import debugLibrary from 'debug';
 import { commonResponse } from '../utils/business';
 import {
+  IFindPasswordParams,
   ILoginUserParams,
   IRegisterUserParams,
   IVerifyCodeParams,
+  findPassword,
   getEmailVerifyCode,
   loginUser,
   registerUser,
@@ -21,7 +23,7 @@ export default class UserController {
       ctx,
       async () => await getEmailVerifyCode(ctx, query),
       debug,
-      ['邮箱已存在', '该邮箱已经发送验证码, 请查收邮件'],
+      ['邮箱已存在', '该邮箱未注册', '该邮箱已经发送验证码', '请查收邮件'],
     );
   }
 
@@ -33,6 +35,17 @@ export default class UserController {
       async () => await registerUser(ctx, body),
       debug,
       ['验证码已过期', '验证码不正确', '邮箱已存在'],
+    );
+  }
+
+  public static async postFindPassword(ctx: MyContext) {
+    const body = ctx.request.body as IFindPasswordParams;
+    debug('body:', body);
+    await commonResponse(
+      ctx,
+      async () => await findPassword(ctx, body),
+      debug,
+      ['验证码已过期', '验证码不正确', '邮箱不存在'],
     );
   }
 

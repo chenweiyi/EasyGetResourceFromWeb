@@ -1,0 +1,26 @@
+doctype html
+html(lang="en")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport", content="width=device-width, initial-scale=1.0")
+    title 注册账户
+    style.
+      .highlight {
+        background-color: yellow;
+        color: black;
+        padding: 2px 5px;
+        border-radius: 3px;
+      }
+      .indent {
+        padding-left: 12px;
+      }
+  body
+    p #{email},
+    p.indent Hello！
+    p.indent 您好！
+    p.indent Please fill in the following captcha within #{validLifeTime} minutes:
+      span.highlight #{num}
+    p.indent 请在 #{validLifeTime} 分钟内填写如下验证码：
+      span.highlight #{num}
+    p.indent Please do not reply to this email as it is sent from an unmanned mailbox.
+    p.indent 请不要回复此电子邮件，因为它是无人值守的邮箱发送的。

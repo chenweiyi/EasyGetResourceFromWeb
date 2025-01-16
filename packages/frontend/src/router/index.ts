@@ -1,7 +1,9 @@
 import { type RouteRecordRaw } from 'vue-router';
+import guard from './guard';
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
+    name: 'root',
     redirect: '/task',
   },
   {
@@ -115,11 +117,31 @@ const routes: RouteRecordRaw[] = [
       icon: IconMaterialSymbolsBarChart4BarsRounded,
     },
   },
+  {
+    path: '/500',
+    name: '500',
+    component: () => import('../views/500.vue'),
+    meta: {
+      title: '500',
+      menu: false,
+    },
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: '404',
+    component: () => import('../views/404.vue'),
+    meta: {
+      title: '404',
+      menu: false,
+    },
+  },
 ];
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
 });
+
+router.beforeEach(guard);
 
 export { routes, router as default };

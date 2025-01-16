@@ -58,14 +58,21 @@ service.interceptors.response.use(
     return Promise.reject(res);
   },
   error => {
-    console.error(error);
+    console.log(error);
+    const config = error.config;
     if (error.status === 401) {
       if (import.meta.env.MODE === 'production') {
-        window.location.href = '/login';
+        const store = useUserStore();
+        store.setUserInfo(undefined);
+        if (!location.pathname.includes('/login')) {
+          window.location.href = '/login';
+        }
         return;
       }
     }
-    ElMessage.error(error.msg || error.message || '服务错误');
+    if (config.headers['notAlertWhenError'] !== '1') {
+      ElMessage.error(error.msg || error.message || '服务错误');
+    }
     return Promise.reject(error);
   },
 );

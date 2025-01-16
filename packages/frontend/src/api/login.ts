@@ -23,6 +23,14 @@ export type IFindPasswordParams = {
   password: string;
 };
 
+export type IGetUserInfoParams = {
+  email: string;
+  id: number;
+  lastLoginTime: string;
+  status: number;
+  type: number;
+};
+
 export const login: (data: ILoginData) => Promise<null> = data => {
   return axios({
     url: '/user/login',
@@ -56,5 +64,15 @@ export const findPassword: (
     url: '/user/findpassword',
     method: 'post',
     data,
+  });
+};
+
+export const getUserInfo: () => Promise<IGetUserInfoParams> = () => {
+  return axios({
+    url: '/user/getuserinfo',
+    method: 'get',
+    headers: {
+      notAlertWhenError: 1,
+    },
   });
 };

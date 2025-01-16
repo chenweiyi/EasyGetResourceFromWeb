@@ -8,10 +8,11 @@ import {
   IVerifyCodeParams,
   findPassword,
   getEmailVerifyCode,
+  getUserInfo,
   loginUser,
   registerUser,
 } from '../service/user';
-import { MyContext } from '../@types/api';
+import { MyContext, MyStateContext } from '../@types/api';
 
 const debug = debugLibrary('user:controller');
 
@@ -57,5 +58,9 @@ export default class UserController {
       '账号已被禁用或删除',
       '更新用户信息失败',
     ]);
+  }
+
+  public static async getUserInfo(ctx: MyStateContext) {
+    await commonResponse(ctx, async () => await getUserInfo(ctx), debug);
   }
 }

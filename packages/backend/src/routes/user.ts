@@ -10,6 +10,7 @@ const genUserRoute = (router: RouterEngine) => {
   router.post('/user/register', UserController.postRegisterUser);
   router.post('/user/login', UserController.postLoginUser);
   router.post('/user/findpassword', UserController.postFindPassword);
+  router.get('/user/getuserinfo', UserController.getUserInfo);
 };
 
 export { genUserRoute };

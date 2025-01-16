@@ -1,5 +1,5 @@
 import { transporter } from '../utils/mail';
-import { MyContext } from '../@types/api';
+import { MyContext, MyStateContext } from '../@types/api';
 import dayjs from 'dayjs';
 import { getConn } from '../utils/mysql';
 import { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
@@ -286,7 +286,7 @@ export const loginUser = async (ctx: MyContext, data: ILoginUserParams) => {
 
     setJwtToken(ctx, {
       email,
-      id: res.insertId,
+      id: data[0].id,
       lastLoginTime: data[0].last_login_time,
       status: data[0].status,
       type: data[0].type,
@@ -296,4 +296,8 @@ export const loginUser = async (ctx: MyContext, data: ILoginUserParams) => {
   } finally {
     conn.release();
   }
+};
+
+export const getUserInfo = async (ctx: MyStateContext) => {
+  return ctx.state.user;
 };

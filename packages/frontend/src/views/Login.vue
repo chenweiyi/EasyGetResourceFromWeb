@@ -41,10 +41,13 @@ const submit = async () => {
   formRef.value.validate(async (valid: boolean) => {
     if (valid) {
       try {
-        const res = await login({
+        await login({
           email: form.value.email,
           password: form.value.password,
         });
+        const store = useUserStore();
+        const res = await getUserInfo();
+        store.setUserInfo(res);
         ElMessage.success('登录成功');
         router.push({
           name: 'task',

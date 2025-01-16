@@ -6,6 +6,7 @@ dist/
 /packages/backend/blob-report/
 /packages/backend/playwright/.cache/
 
+.env
 .eslintrc-auto-import.json
 auto-imports.d.ts
 components.d.ts

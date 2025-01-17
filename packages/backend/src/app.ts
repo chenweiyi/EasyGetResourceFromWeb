@@ -14,6 +14,7 @@ import { cronMap } from './crawler/cronInstance';
 import { router } from './routes/index';
 import { MyContext } from './@types/api';
 import jwt from 'koa-jwt';
+import jwtError from './middlewares/jwt-error';
 
 const debug = debugLibrary('app');
 
@@ -27,6 +28,7 @@ app.use(
     allowHeaders: ['*'],
   }),
 );
+
 // error handler
 onerror(app);
 
@@ -40,10 +42,6 @@ app.use(
 app.use(json());
 app.use(logger());
 
-// app.use(async (ctx, next) => {
-//   await next();
-// });
-
 app.use(history());
 
 // app.use(views(__dirname + '/views', {
@@ -54,14 +52,9 @@ app.use(history());
 app.use(conditional());
 app.use(etag());
 
-// logger
-// app.use(async (ctx, next) => {
-//   const start = new Date().getTime();
-//   await next();
-//   const ms = new Date().getTime() - start;
-//   debug(`${ctx.method} ${ctx.url} - ${ms}ms`);
-// });
-
+// jwt error handler
+app.use(jwtError);
+// jwt
 app.use(
   jwt({ secret: process.env.secret }).unless({
     path: [
@@ -76,6 +69,7 @@ app.use(
 // routes
 app.use(router.routes()).use(router.allowedMethods());
 
+// front
 app.use(
   serve(path.resolve('..', 'frontend/dist'), {
     // 设置cache-controll缓存时间

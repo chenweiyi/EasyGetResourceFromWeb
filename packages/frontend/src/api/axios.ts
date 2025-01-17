@@ -60,16 +60,6 @@ service.interceptors.response.use(
   error => {
     console.log(error);
     const config = error.config;
-    if (error.status === 401) {
-      if (import.meta.env.MODE === 'production') {
-        const store = useUserStore();
-        store.setUserInfo(undefined);
-        if (!location.pathname.includes('/login')) {
-          window.location.href = '/login';
-        }
-        return;
-      }
-    }
     if (config.headers['notAlertWhenError'] !== '1') {
       ElMessage.error(error.msg || error.message || '服务错误');
     }

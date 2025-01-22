@@ -13,9 +13,9 @@ import {
   getMailKeys,
   getMailValidator,
   getMailValues,
-  prefix,
+  PREFIX,
   setMailValidator,
-} from '../utils/redisService';
+} from '../utils/redisEmailService';
 
 export type IVerifyCodeParams = {
   email: string;
@@ -95,11 +95,11 @@ export const getEmailVerifyCode = async (
 
   debug('num:', num);
   const keys = await getMailKeys();
-  if (keys.some(key => key.replace(prefix, '') === uid)) {
+  if (keys.some(key => key.replace(PREFIX, '') === uid)) {
     return;
   } else {
     await setMailValidator(
-      `${prefix}${uid}`,
+      `${PREFIX}${uid}`,
       {
         email,
         num,
@@ -158,10 +158,10 @@ export const registerUser = async (
   }
 
   const keys = await getMailKeys();
-  if (!keys.find(key => key.replace(prefix, '') === uid)) {
+  if (!keys.find(key => key.replace(PREFIX, '') === uid)) {
     throw new Error('验证码已过期');
   }
-  const targetValue = await getMailValidator(`${prefix}${uid}`);
+  const targetValue = await getMailValidator(`${PREFIX}${uid}`);
   if (targetValue.num !== code) {
     throw new Error('验证码不正确');
   }
@@ -214,11 +214,11 @@ export const findPassword = async (
   }
 
   const keys = await getMailKeys();
-  if (!keys.find(key => key.replace(prefix, '') === uid)) {
+  if (!keys.find(key => key.replace(PREFIX, '') === uid)) {
     throw new Error('验证码已过期');
   }
 
-  const targetValue = await getMailValidator(`${prefix}${uid}`);
+  const targetValue = await getMailValidator(`${PREFIX}${uid}`);
   if (targetValue.num !== code) {
     throw new Error('验证码不正确');
   }

@@ -132,6 +132,9 @@ importers:
       redis:
         specifier: ^4.7.0
         version: 4.7.0
+      uuid:
+        specifier: ^11.0.5
+        version: 11.0.5
     devDependencies:
       '@types/debug':
         specifier: ^4.1.12

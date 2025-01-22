@@ -2,12 +2,18 @@ import { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import { getConn, getPool } from '../utils/mysql';
 import debugLibrary from 'debug';
 import dayjs from 'dayjs';
-import { crawlerPatch, IPatchCrawlerOptions } from '../crawler/index';
+import {
+  crawlerPatch,
+  IFlowData,
+  IPatchCrawlerOptions,
+} from '../crawler/index';
 import { type ITaskField } from './task';
-import { CronJob } from 'cron';
 import { MyContext, MyQueryContext } from '../@types/api';
 import { judgeCronTime } from './common';
 import { getNextTime, modifyTableField } from '../utils/business';
+import { RedisService } from '../utils/redis';
+import { getServerId } from '../utils/serverId';
+import CronJob from '../ships/cron';
 
 const debug = debugLibrary('monitor:service');
 
@@ -21,6 +27,119 @@ export type IMonitorType = {
 
 export type IMonitorWithId = IMonitorType & {
   id: number | string;
+};
+
+const execJobEveryTick = async (options: {
+  id: number;
+  tasks: RowDataPacket[];
+  taskFlow: IFlowData;
+  job: CronJob;
+  execTotalNum: number;
+}) => {
+  const { id, tasks, taskFlow, job, execTotalNum } = options;
+  const conn = await getConn();
+  try {
+    // 更新任务状态为正在执行
+    await modifyTableField({
+      id,
+      value: 2,
+      conn,
+      field: 'status',
+      table: 'monitor',
+    });
+
+    // 写入状态到redis中
+    await RedisService.sAdd(`monitor-execing:${getServerId()}`, id + '');
+
+    // 执行任务
+    const startTime = dayjs();
+    let result: ITaskField[] = [];
+    let crawler_error = null;
+    try {
+      result = await crawlerPatch(
+        tasks.map(t => {
+          return {
+            ...t,
+            fields: JSON.parse(t.fields),
+          };
+        }) as IPatchCrawlerOptions,
+        taskFlow,
+      );
+    } catch (error) {
+      debug(error);
+      crawler_error = error;
+    }
+
+    // 更新任务记录
+    const endTime = dayjs();
+    const d2 = {
+      monitor_id: id,
+      start_time: startTime.format('YYYY-MM-DD HH:mm:ss'),
+      end_time: endTime.format('YYYY-MM-DD HH:mm:ss'),
+      status: crawler_error ? 1 : 0,
+      exec_time: endTime.diff(startTime, 's'),
+      result: crawler_error
+        ? JSON.stringify({ message: crawler_error.message || 'error' })
+        : JSON.stringify(result),
+    };
+
+    debug('d2:', d2);
+
+    const res2 = await conn.query<ResultSetHeader>(
+      'INSERT INTO monitorRecord SET ?',
+      [d2],
+    );
+
+    if (res2[0].affectedRows === 0) {
+      throw new Error('插入监控单记录失败');
+    }
+
+    let date = null;
+    try {
+      const nextDate = job.nextDate();
+      date = dayjs(nextDate.setZone('Asia/Shanghai').valueOf()).format(
+        'YYYY-MM-DD HH:mm:ss',
+      );
+      debug('next date:', date);
+    } catch (error) {}
+
+    await modifyTableField({
+      id,
+      value: {
+        exec_total_num: execTotalNum + 1,
+      },
+      conn,
+      table: 'monitor',
+    });
+  } catch (error) {
+    debug(error);
+  } finally {
+    conn.release();
+  }
+};
+
+const onJobComplete = async (options: { id: number }) => {
+  const { id } = options;
+  const conn = await getConn();
+  try {
+    const [rows] = await conn.query<RowDataPacket[]>(
+      'SELECT * FROM monitor WHERE id = ? AND status != 0',
+      [id],
+    );
+    if (rows.length === 0) {
+      return;
+    }
+    await conn.query<ResultSetHeader>(
+      'UPDATE monitor SET status = 1 WHERE id = ?',
+      [id],
+    );
+    // 删除redis中的状态
+    await RedisService.sRem(`monitor-execing:${getServerId()}`, id + '');
+  } catch (error) {
+    debug(error);
+  } finally {
+    conn.release();
+  }
 };
 
 export const addNewMonitor = async (data: IMonitorType) => {
@@ -354,96 +473,25 @@ export const execMonitorById = async (ctx: MyContext, id: number) => {
 
     const job = CronJob.from({
       cronTime: ct,
-      onTick: async () => {
-        const conn2 = await getConn();
-        try {
-          // 更新任务状态为正在执行
-          await modifyTableField({
-            id,
-            value: 2,
-            conn: conn2,
-            field: 'status',
-            table: 'monitor',
-          });
-          // 执行任务
-          const startTime = dayjs();
-          let result: ITaskField[] = [];
-          let crawler_error = null;
-          try {
-            result = await crawlerPatch(
-              tasks[0].map(t => {
-                return {
-                  ...t,
-                  fields: JSON.parse(t.fields),
-                };
-              }) as IPatchCrawlerOptions,
-              taskFlow,
-            );
-          } catch (error) {
-            debug(error);
-            crawler_error = error;
-          }
-
-          // 更新任务记录
-          const endTime = dayjs();
-          const d2 = {
-            monitor_id: id,
-            start_time: startTime.format('YYYY-MM-DD HH:mm:ss'),
-            end_time: endTime.format('YYYY-MM-DD HH:mm:ss'),
-            status: crawler_error ? 1 : 0,
-            exec_time: endTime.diff(startTime, 's'),
-            result: crawler_error
-              ? JSON.stringify({ message: crawler_error.message || 'error' })
-              : JSON.stringify(result),
-          };
-
-          debug('d2:', d2);
-
-          const res2 = await conn2.query<ResultSetHeader>(
-            'INSERT INTO monitorRecord SET ?',
-            [d2],
-          );
-
-          if (res2[0].affectedRows === 0) {
-            throw new Error('插入监控单记录失败');
-          }
-
-          let date = null;
-          try {
-            const nextDate = job.nextDate();
-            date = dayjs(nextDate.setZone('Asia/Shanghai').valueOf()).format(
-              'YYYY-MM-DD HH:mm:ss',
-            );
-            debug('next date:', date);
-          } catch (error) {}
-
-          await modifyTableField({
-            id,
-            value: {
-              exec_total_num: exec_total_num + 1,
-            },
-            conn: conn2,
-            table: 'monitor',
-          });
-        } catch (error) {
-          debug(error);
-        } finally {
-          conn2.release();
-        }
+      onComplete: async () => {
+        await onJobComplete({
+          id,
+        });
       },
+      onTick: async () => {
+        await execJobEveryTick({
+          id,
+          tasks: tasks[0],
+          taskFlow,
+          job,
+          execTotalNum: exec_total_num,
+        });
+      },
+      waitForCompletion: true,
       start: true,
       timeZone: 'Asia/Shanghai',
     });
 
-    let date = null;
-    try {
-      const nextDate = job.nextDate();
-      date = dayjs(nextDate.setZone('Asia/Shanghai').valueOf()).format(
-        'YYYY-MM-DD HH:mm:ss',
-      );
-
-      debug('date:', date);
-    } catch (error) {}
     await modifyTableField({
       id,
       value: {
@@ -452,12 +500,16 @@ export const execMonitorById = async (ctx: MyContext, id: number) => {
       conn,
       table: 'monitor',
     });
+
+    // 写入状态到redis中
+    await RedisService.sAdd(`monitor-execing:${getServerId()}`, id + '');
+
     if (!ctx.cronMap.has(id)) {
       ctx.cronMap.set(id, job);
     } else {
       // 理论上不会走这里
       const cropDemo = ctx.cronMap.get(id);
-      cropDemo.stop();
+      await cropDemo.stop();
       ctx.cronMap.set(id, job);
     }
   } catch (error) {
@@ -483,18 +535,9 @@ export const stopMonitorById = async (ctx: MyContext, id: number) => {
       throw new Error('监控job不存在');
     } else {
       const cropDemo = ctx.cronMap.get(id);
-      cropDemo.stop();
+      await cropDemo.stop();
       ctx.cronMap.delete(id);
     }
-    // 更新任务状态为正常空闲
-    await modifyTableField({
-      id,
-      value: {
-        status: 1,
-      },
-      conn,
-      table: 'monitor',
-    });
   } catch (error) {
     throw error;
   } finally {
@@ -504,16 +547,10 @@ export const stopMonitorById = async (ctx: MyContext, id: number) => {
 
 export const stopAllMonitor = async (ctx: MyContext) => {
   if (ctx.cronMap.size > 0) {
-    const ids = Array.from(ctx.cronMap.keys());
     for (let [key, value] of ctx.cronMap) {
-      value.stop();
+      await value.stop();
     }
     ctx.cronMap.clear();
-    const pool = getPool();
-    await pool.query<ResultSetHeader>(
-      'UPDATE monitor SET status = 1 WHERE id IN (?)',
-      ids,
-    );
   }
 };
 

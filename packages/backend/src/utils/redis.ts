@@ -42,6 +42,27 @@ class RedisService {
       await client.expire(key, ttl);
     }
   }
+
+  // set add
+  static async sAdd(key: string, value: string | string[], ttl?: number) {
+    await getRedisClient();
+    await client.sAdd(key, value);
+
+    if (ttl) {
+      await client.expire(key, ttl);
+    }
+  }
+
+  // set remove
+  static async sRem(key: string, value: string | string[]) {
+    await getRedisClient();
+    await client.sRem(key, value);
+  }
+
+  static async sIsMember(key: string, value: string) {
+    await getRedisClient();
+    return await client.sIsMember(key, value);
+  }
 }
 
 export { getRedisClient, client, RedisService };

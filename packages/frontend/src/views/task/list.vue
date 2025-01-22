@@ -170,28 +170,36 @@ watch(() => [pageSize.value, current.value], query);
             v-if="scope.row.status === 3"
             placement="top"
           >
-            <i-ep-video-play class="text-blue" />
+            <div class="h-full w-20px flex align-center">
+              <i-svg-spinners-bars-scale class="text-blue" />
+            </div>
           </el-tooltip>
           <el-tooltip
             content="暂停中"
             v-else-if="scope.row.status === 2"
             placement="top"
           >
-            <i-ep-video-pause class="text-yellow" />
+            <div class="h-full w-20px flex align-center">
+              <i-ep-video-pause class="text-yellow" />
+            </div>
           </el-tooltip>
           <el-tooltip
             content="正常"
             v-else-if="scope.row.status === 1"
             placement="top"
           >
-            <i-ep-select class="text-green" />
+            <div class="h-full w-20px flex align-center">
+              <i-ep-select class="text-green" />
+            </div>
           </el-tooltip>
           <el-tooltip
             content="有错误"
             v-else-if="scope.row.status === 4"
             placement="top"
           >
-            <i-ep-warning-filled class="text-red" />
+            <div class="h-full w-20px flex align-center">
+              <i-ep-warning-filled class="text-red" />
+            </div>
           </el-tooltip>
         </template>
       </el-table-column>

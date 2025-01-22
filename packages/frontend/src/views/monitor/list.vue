@@ -159,7 +159,7 @@ watch(() => [pageSize.value, current.value], query);
             "
             placement="top"
           >
-            <div class="h-full w-20px w-auto flex align-center">
+            <div class="h-full w-20px flex align-center">
               <i-svg-spinners-bars-scale class="text-blue" />
             </div>
           </el-tooltip>

@@ -1,9 +1,11 @@
-import { PoolConnection, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
-import { getConn, getPool } from '../utils/mysql';
+import { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
+import { getConn } from '../utils/mysql';
 import debugLibrary from 'debug';
 import dayjs from 'dayjs';
 import { crawler, type ICrawlerOptions } from '../crawler/index';
 import { modifyTableField } from '../utils/business';
+import { RedisService } from '../utils/redis';
+import { getServerId } from '../utils/serverId';
 
 const debug = debugLibrary('task:service');
 
@@ -353,6 +355,9 @@ export const execTaskById = async (id: number) => {
       table: 'task',
     });
 
+    // 添加正在执行的任务到redis中
+    RedisService.sAdd(`task-execing:${getServerId()}`, id + '');
+
     // 执行任务
     const task = rows[0];
     const { url, fields, useProxy, retryNum, execTotalNum } = task;
@@ -407,6 +412,10 @@ export const execTaskById = async (id: number) => {
       conn,
       table: 'task',
     });
+
+    // 删除正在执行的任务
+    RedisService.sRem(`task-execing:${getServerId()}`, id + '');
+
     return res2[0].insertId;
   } catch (error) {
     throw error;

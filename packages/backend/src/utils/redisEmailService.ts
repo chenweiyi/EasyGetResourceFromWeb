@@ -1,7 +1,7 @@
 import { IMailValidatorValue } from '../@types/api';
 import { RedisService } from './redis';
 
-export const prefix = 'mail:';
+export const PREFIX = 'mail:';
 export const getMailValidator: (
   key: string,
 ) => Promise<IMailValidatorValue> = async key => {
@@ -9,7 +9,7 @@ export const getMailValidator: (
 };
 
 export const getMailKeys: () => Promise<string[]> = async () => {
-  return await RedisService.keys(`${prefix}*`);
+  return await RedisService.keys(`${PREFIX}*`);
 };
 
 export const getMailValues: () => Promise<IMailValidatorValue[]> = async () => {

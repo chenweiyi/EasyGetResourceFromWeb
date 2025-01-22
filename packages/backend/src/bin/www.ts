@@ -6,7 +6,7 @@ import http from 'http';
 // import '../utils/abortControllerPolyfill';
 // import '../utils/fetchPolyfill';
 import app from '../app';
-import { clearZombieCron, restoreData, initRedis } from '../utils/initHelper';
+import { restoreData, initRedis } from '../utils/initHelper';
 
 const debug = debugLibrary('crawler');
 
@@ -87,7 +87,5 @@ function onListening() {
   debug('Listening on ' + bind);
 
   restoreData();
-  clearZombieCron();
   initRedis();
-  // clearEmailVerifyCode();
 }

@@ -40,7 +40,8 @@
     "pug": "^3.0.3",
     "qs": "^6.11.1",
     "quick-lru": "^7.0.0",
-    "redis": "^4.7.0"
+    "redis": "^4.7.0",
+    "uuid": "^11.0.5"
   },
   "devDependencies": {
     "@types/debug": "^4.1.12",

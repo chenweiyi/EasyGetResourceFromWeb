@@ -8,11 +8,13 @@ interface IMailValidatorValue {
   email: string;
   /** 时间戳 */
   time: number;
+  type: 'register' | 'findpassword';
 }
 
 type IJWTUser = {
   email: string;
   id: number;
+  name?: string;
   lastLoginTime: string;
   status: number;
   type: number;
@@ -25,7 +27,6 @@ type ISessionJWTUser = IJWTUser & {
 
 interface MyContext extends Context {
   cronMap: Map<number, CronJob>;
-  mailValidators: Map<string, IMailValidatorValue>;
 }
 
 interface MyStateContext extends MyContext {

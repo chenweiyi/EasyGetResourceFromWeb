@@ -1,4 +1,7 @@
 import mysql from 'mysql2/promise';
+import debugLibrary from 'debug';
+
+const debug = debugLibrary('mysql');
 
 function createMysqlPool() {
   const pool = mysql.createPool({
@@ -14,16 +17,17 @@ function createMysqlPool() {
     enableKeepAlive: true,
     keepAliveInitialDelay: 0,
   });
+  debug('mysql pool created');
   return pool;
 }
 
-const poolMap = new Map<'pool', mysql.Pool | null>();
+let pool: mysql.Pool | null = null;
 
 const getPool = () => {
-  if (!poolMap.get('pool')) {
-    poolMap.set('pool', createMysqlPool());
+  if (!pool) {
+    pool = createMysqlPool();
   }
-  return poolMap.get('pool');
+  return pool;
 };
 
 const getConn = async () => {

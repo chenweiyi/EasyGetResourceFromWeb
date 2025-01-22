@@ -20,7 +20,6 @@ const debug = debugLibrary('app');
 
 let app = new Koa<any, MyContext>();
 app.context.cronMap = cronMap;
-app.context.mailValidators = new Map();
 
 app.use(
   cors({

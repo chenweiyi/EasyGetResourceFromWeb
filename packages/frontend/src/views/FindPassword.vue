@@ -14,6 +14,7 @@ const uid = ref('');
 const countDown = ref<number>();
 const codeLoading = ref(false);
 const loading = ref(false);
+const validEmail = ref(false);
 
 let timer: ReturnType<typeof setInterval> | undefined = undefined;
 
@@ -24,9 +25,13 @@ const validateEmail = (
 ) => {
   // 验证是否为邮箱
   const reg = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  return reg.test(value.trim())
-    ? callback()
-    : callback(new Error('请输入正确的邮箱'));
+  if (reg.test(value.trim())) {
+    validEmail.value = true; // 邮箱验证通过，设置 validEmail 为 true
+    callback();
+  } else {
+    validEmail.value = false; // 邮箱验证不通过，设置 validEmail 为 false
+    callback(new Error('请输入正确的邮箱'));
+  }
 };
 
 const rules = reactive({
@@ -84,7 +89,7 @@ const getValidCode = async () => {
       uid: uid.value,
       type: 'findpassword',
     });
-    countDown.value = 120;
+    countDown.value = 60;
     timer = setInterval(() => {
       if (countDown.value! > 0) {
         countDown.value! -= 1;
@@ -154,7 +159,7 @@ const save = async () => {
             class="ml-12px"
             type="primary"
             @click="getValidCode"
-            :disabled="countDown != undefined || codeLoading"
+            :disabled="countDown != undefined || codeLoading || !validEmail"
           >
             <span>获取验证码</span>
             <span class="ml-2px" v-if="countDown! > 0">{{ countDown! }}</span>

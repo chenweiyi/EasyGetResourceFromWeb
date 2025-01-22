@@ -7,8 +7,13 @@ import {
   INTERVEL_CHECK_ZOMBIE_CRON,
   JUDGE_IS_ZOMBIE_CRON_OFFSET,
 } from '../const';
+import { getRedisClient } from './redis';
 
 const debug = debugLibrary('InitHelper');
+
+const initRedis = async () => {
+  await getRedisClient();
+};
 
 const restoreData = async () => {
   const conn = await getConn();
@@ -63,7 +68,7 @@ const clearZombieCron = () => {
           clearIds,
         );
         if (rows.length === 0) {
-          throw new Error('监控单不存在或已删除');
+          return;
         }
         await conn.query<ResultSetHeader>(
           'UPDATE monitor SET status = 1 WHERE id IN (?)',
@@ -78,30 +83,4 @@ const clearZombieCron = () => {
   }, INTERVEL_CHECK_ZOMBIE_CRON);
 };
 
-const clearEmailVerifyCode = async () => {
-  setInterval(async () => {
-    const mailValidators = app.context.mailValidators;
-    if (mailValidators.size > 0) {
-      const clearUids: string[] = [];
-      const life = +process.env.MAIL_VALID_LIFE_TIME * 60;
-
-      for (let [uid, value] of mailValidators) {
-        const { time } = value;
-        const now = dayjs();
-        const date = dayjs(time);
-        if (now.diff(date, 's') > life) {
-          clearUids.push(uid);
-        }
-      }
-
-      if (clearUids.length === 0) return;
-
-      debug(`ready to clear mail validators: [${clearUids}]`);
-      for (let uid of clearUids) {
-        mailValidators.delete(uid);
-      }
-    }
-  }, 1000);
-};
-
-export { restoreData, clearZombieCron, clearEmailVerifyCode };
+export { restoreData, clearZombieCron, initRedis };

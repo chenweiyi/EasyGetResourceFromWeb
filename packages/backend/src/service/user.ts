@@ -5,11 +5,17 @@ import { getConn } from '../utils/mysql';
 import { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import debugLibrary from 'debug';
 import { encodeStr } from '../utils/crypto';
-import jwt from 'jsonwebtoken';
 import pug from 'pug';
 import path from 'node:path';
 import { genRandomNumber, getDirname } from '../utils/tool';
 import { setJwtToken } from '../utils/business';
+import {
+  getMailKeys,
+  getMailValidator,
+  getMailValues,
+  prefix,
+  setMailValidator,
+} from '../utils/redisService';
 
 export type IVerifyCodeParams = {
   email: string;
@@ -44,13 +50,16 @@ export const getEmailVerifyCode = async (
 ) => {
   const { email, uid, type } = query;
 
-  if (!email || !uid) {
-    throw new Error(`Need email and uid, got email: ${email}, uid: ${uid}.`);
+  if (!email || !uid || !type) {
+    throw new Error(
+      `Need email and uid, got email: ${email}, uid: ${uid}, type: ${type}.`,
+    );
   }
 
   let isAlreadySend = false;
-  for (let value of ctx.mailValidators.values()) {
-    if (value.email === email) {
+  const mailValidatorsValues = await getMailValues();
+  for (let value of mailValidatorsValues) {
+    if (value.email === email && value.type === type) {
       isAlreadySend = true;
       break;
     }
@@ -85,15 +94,20 @@ export const getEmailVerifyCode = async (
   const num = genRandomNumber(4);
 
   debug('num:', num);
-
-  if (ctx.mailValidators.has(uid)) {
+  const keys = await getMailKeys();
+  if (keys.some(key => key.replace(prefix, '') === uid)) {
     return;
   } else {
-    ctx.mailValidators.set(uid, {
-      email,
-      num,
-      time: dayjs().valueOf(),
-    });
+    await setMailValidator(
+      `${prefix}${uid}`,
+      {
+        email,
+        num,
+        time: dayjs().valueOf(),
+        type,
+      },
+      +process.env.MAIL_VALID_LIFE_TIME * 60,
+    );
   }
 
   let html = '';
@@ -143,11 +157,12 @@ export const registerUser = async (
     );
   }
 
-  if (!ctx.mailValidators.has(uid)) {
+  const keys = await getMailKeys();
+  if (!keys.find(key => key.replace(prefix, '') === uid)) {
     throw new Error('验证码已过期');
   }
-
-  if (ctx.mailValidators.get(uid).num !== code) {
+  const targetValue = await getMailValidator(`${prefix}${uid}`);
+  if (targetValue.num !== code) {
     throw new Error('验证码不正确');
   }
 
@@ -198,11 +213,13 @@ export const findPassword = async (
     );
   }
 
-  if (!ctx.mailValidators.has(uid)) {
+  const keys = await getMailKeys();
+  if (!keys.find(key => key.replace(prefix, '') === uid)) {
     throw new Error('验证码已过期');
   }
 
-  if (ctx.mailValidators.get(uid).num !== code) {
+  const targetValue = await getMailValidator(`${prefix}${uid}`);
+  if (targetValue.num !== code) {
     throw new Error('验证码不正确');
   }
 
@@ -287,6 +304,7 @@ export const loginUser = async (ctx: MyContext, data: ILoginUserParams) => {
     setJwtToken(ctx, {
       email,
       id: data[0].id,
+      name: data[0].name,
       lastLoginTime: data[0].last_login_time,
       status: data[0].status,
       type: data[0].type,

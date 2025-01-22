@@ -10,8 +10,13 @@ export default async function guard(
   console.log('from:', from);
   console.log('to:', to);
 
+  const whiteList = ['login', 'register', 'findpassword'];
+
   if (!userInfo.value) {
     try {
+      if (whiteList.includes(to.name as string)) {
+        return;
+      }
       const res = await getUserInfo();
       store.setUserInfo(res);
       if (res) {

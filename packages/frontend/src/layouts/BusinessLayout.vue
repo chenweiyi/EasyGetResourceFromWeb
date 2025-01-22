@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import spider from '@/assets/spider.png';
+import avatar from '@/assets/avatar.jpeg';
 import { routes } from '@/router';
+import { storeToRefs } from 'pinia';
 
 type IMenu = {
   title: string;
@@ -11,6 +13,8 @@ type IMenu = {
 
 const route = useRoute();
 const router = useRouter();
+const userStore = useUserStore();
+const { userInfo } = storeToRefs(userStore);
 
 const menus = ref<IMenu[]>(
   routes
@@ -33,6 +37,11 @@ const active = computed(() => {
 
 const clickMenu = (menu: IMenu) => {
   router.push({ name: menu.name });
+};
+
+const logout = () => {
+  localStorage.removeItem('token');
+  location.reload();
 };
 </script>
 
@@ -63,6 +72,44 @@ const clickMenu = (menu: IMenu) => {
                 <span class="ml-8px">{{ menu.title }}</span>
               </li>
             </ul>
+          </div>
+          <div class="flex-1"></div>
+          <div class="flex items-center">
+            <el-popover
+              placement="bottom"
+              trigger="hover"
+              width="350"
+              :show-after="500"
+            >
+              <template #reference>
+                <div class="flex items-center">
+                  <el-avatar :size="30" :src="avatar" />
+                  <span class="ml-8px">{{
+                    userInfo!.name || userInfo!.email
+                  }}</span>
+                </div>
+              </template>
+              <div class="flex flex-col items-stretch">
+                <div class="flex items-center">
+                  <el-avatar :size="40" :src="avatar" />
+                  <div class="flex flex-col ml-24px">
+                    <template v-if="userInfo!.name">
+                      <span class="text-14px mb-8px">{{ userInfo!.name }}</span>
+                      <span class="text-12px">{{ userInfo!.email }}</span>
+                    </template>
+                    <template v-else>
+                      <span class="text-14px">{{ userInfo!.email }}</span>
+                    </template>
+                  </div>
+                </div>
+                <el-divider></el-divider>
+                <div class="flex justify-center items-center">
+                  <el-button type="primary" plain @click="logout"
+                    >退出登录</el-button
+                  >
+                </div>
+              </div>
+            </el-popover>
           </div>
         </div>
       </el-header>

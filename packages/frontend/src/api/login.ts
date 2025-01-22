@@ -25,6 +25,7 @@ export type IFindPasswordParams = {
 
 export type IGetUserInfoParams = {
   email: string;
+  name?: string;
   id: number;
   lastLoginTime: string;
   status: number;

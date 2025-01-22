@@ -39,7 +39,8 @@
     "playwright": "1.48.0",
     "pug": "^3.0.3",
     "qs": "^6.11.1",
-    "quick-lru": "^7.0.0"
+    "quick-lru": "^7.0.0",
+    "redis": "^4.7.0"
   },
   "devDependencies": {
     "@types/debug": "^4.1.12",

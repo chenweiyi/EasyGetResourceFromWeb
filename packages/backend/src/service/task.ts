@@ -343,6 +343,15 @@ export const execTaskById = async (id: number) => {
       throw new Error('任务不存在或已删除');
     }
 
+    const [rows2] = await conn.query<RowDataPacket[]>(
+      'SELECT * FROM task WHERE id = ? AND status = 3',
+      [id],
+    );
+
+    if (rows2.length === 1) {
+      throw new Error('任务正在运行');
+    }
+
     const startTime = dayjs();
     // 更新任务状态为正在执行
     await modifyTableField({

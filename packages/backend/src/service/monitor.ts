@@ -1,5 +1,5 @@
 import { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
-import { getConn, getPool } from '../utils/mysql';
+import { getConn } from '../utils/mysql';
 import debugLibrary from 'debug';
 import dayjs from 'dayjs';
 import {
@@ -13,7 +13,7 @@ import { judgeCronTime } from './common';
 import { getNextTime, modifyTableField } from '../utils/business';
 import { RedisService } from '../utils/redis';
 import { getServerId } from '../utils/serverId';
-import CronJob from '../ships/cron';
+import { CronJob } from 'cron';
 
 const debug = debugLibrary('monitor:service');
 
@@ -118,8 +118,11 @@ const execJobEveryTick = async (options: {
   }
 };
 
-const onJobComplete = async (options: { id: number }) => {
-  const { id } = options;
+const onJobComplete = async (options: {
+  id: number;
+  completeResolve: Function;
+}) => {
+  const { id, completeResolve } = options;
   const conn = await getConn();
   try {
     const [rows] = await conn.query<RowDataPacket[]>(
@@ -138,6 +141,7 @@ const onJobComplete = async (options: { id: number }) => {
   } catch (error) {
     debug(error);
   } finally {
+    completeResolve(1);
     conn.release();
   }
 };
@@ -417,6 +421,14 @@ export const execMonitorById = async (ctx: MyContext, id: number) => {
       throw new Error('监控单不存在或已删除');
     }
 
+    const [rows2] = await conn.query<RowDataPacket[]>(
+      'SELECT * FROM monitor WHERE id = ? AND status = 2',
+      [id],
+    );
+    if (rows2.length === 1) {
+      throw new Error('监控单正在运行');
+    }
+
     // 查询监控
     const res = await conn.query<RowDataPacket[]>(
       `SELECT 
@@ -471,11 +483,16 @@ export const execMonitorById = async (ctx: MyContext, id: number) => {
       ct = new Date(+cronTime);
     }
 
+    let completeResolve;
+    const completePromise = new Promise<void>((resolve, reject) => {
+      completeResolve = resolve;
+    });
     const job = CronJob.from({
       cronTime: ct,
       onComplete: async () => {
         await onJobComplete({
           id,
+          completeResolve,
         });
       },
       onTick: async () => {
@@ -505,12 +522,19 @@ export const execMonitorById = async (ctx: MyContext, id: number) => {
     await RedisService.sAdd(`monitor-execing:${getServerId()}`, id + '');
 
     if (!ctx.cronMap.has(id)) {
-      ctx.cronMap.set(id, job);
+      ctx.cronMap.set(id, {
+        job,
+        completePromise,
+      });
     } else {
       // 理论上不会走这里
       const cropDemo = ctx.cronMap.get(id);
-      await cropDemo.stop();
-      ctx.cronMap.set(id, job);
+      cropDemo.job.stop();
+      await cropDemo.completePromise;
+      ctx.cronMap.set(id, {
+        job,
+        completePromise,
+      });
     }
   } catch (error) {
     throw error;
@@ -535,7 +559,8 @@ export const stopMonitorById = async (ctx: MyContext, id: number) => {
       throw new Error('监控job不存在');
     } else {
       const cropDemo = ctx.cronMap.get(id);
-      await cropDemo.stop();
+      cropDemo.job.stop();
+      await cropDemo.completePromise;
       ctx.cronMap.delete(id);
     }
   } catch (error) {
@@ -548,7 +573,8 @@ export const stopMonitorById = async (ctx: MyContext, id: number) => {
 export const stopAllMonitor = async (ctx: MyContext) => {
   if (ctx.cronMap.size > 0) {
     for (let [key, value] of ctx.cronMap) {
-      await value.stop();
+      value.job.stop();
+      await value.completePromise;
     }
     ctx.cronMap.clear();
   }

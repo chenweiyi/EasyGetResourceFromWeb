@@ -1,5 +1,6 @@
 import { Context } from 'koa';
 import { CronJob } from 'cron';
+import { ICronMap } from '../crawler/cronInstance';
 
 interface IMailValidatorValue {
   /** 验证码 */
@@ -26,7 +27,7 @@ type ISessionJWTUser = IJWTUser & {
 };
 
 interface MyContext extends Context {
-  cronMap: Map<number, CronJob>;
+  cronMap: ICronMap;
 }
 
 interface MyStateContext extends MyContext {

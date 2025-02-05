@@ -74,7 +74,7 @@ const logout = () => {
             </ul>
           </div>
           <div class="flex-1"></div>
-          <div class="flex items-center">
+          <div class="flex items-center h-full">
             <el-popover
               placement="bottom"
               trigger="hover"
@@ -82,7 +82,7 @@ const logout = () => {
               :show-after="500"
             >
               <template #reference>
-                <div class="flex items-center">
+                <div class="flex items-center h-full">
                   <el-avatar :size="30" :src="avatar" />
                   <span class="ml-8px">{{
                     userInfo!.name || userInfo!.email

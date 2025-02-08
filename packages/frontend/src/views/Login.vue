@@ -6,6 +6,7 @@ const form = ref({
   email: '',
   password: '',
 });
+const loading = ref(false);
 const router = useRouter();
 
 const validateEmail = (
@@ -41,6 +42,7 @@ const submit = async () => {
   formRef.value.validate(async (valid: boolean) => {
     if (valid) {
       try {
+        loading.value = true;
         await login({
           email: form.value.email,
           password: form.value.password,
@@ -54,6 +56,8 @@ const submit = async () => {
         });
       } catch (error) {
         console.error(error);
+      } finally {
+        loading.value = false;
       }
     } else {
       console.log('error submit...');
@@ -77,50 +81,51 @@ const findPassword = () => {
 <template>
   <WhiteBoard>
     <div class="bg min-w-1300px">
-      <el-form
-        ref="formRef"
-        :model="form"
-        :rules="rules"
-        label-width="80px"
-        class="login-form"
-      >
-        <el-form-item label="邮箱地址" prop="email">
-          <el-input
-            v-model="form.email"
-            placeholder="请输入邮箱地址"
-            autocomplete="off"
-            clearable
-          />
-        </el-form-item>
-        <el-form-item label="密码" prop="password">
-          <el-input
-            v-model="form.password"
-            placeholder="请输入密码"
-            show-password
-            autocomplete="new-password"
-            clearable
-          />
-        </el-form-item>
-        <el-form-item class="mt-40px">
-          <el-button type="primary" @click="submit" class="flex-1"
-            >登录</el-button
-          >
-          <el-button type="success" @click="register" class="60px"
-            >注册</el-button
-          >
-        </el-form-item>
-        <div class="flex justify-end items-center">
-          <span class="text-gray-400 text-12px">忘记密码？</span>
-          <el-button
-            link
-            type="primary"
-            size="small"
-            class="pl-2px! pr-0!"
-            @click="findPassword"
-            >找回密码</el-button
-          >
-        </div>
-      </el-form>
+      <div class="login-form">
+        <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
+          <el-form-item label="邮箱地址" prop="email">
+            <el-input
+              v-model="form.email"
+              placeholder="请输入邮箱地址"
+              autocomplete="off"
+              clearable
+            />
+          </el-form-item>
+          <el-form-item label="密码" prop="password">
+            <el-input
+              v-model="form.password"
+              placeholder="请输入密码"
+              show-password
+              autocomplete="new-password"
+              clearable
+            />
+          </el-form-item>
+          <el-form-item class="mt-40px">
+            <el-button
+              type="primary"
+              class="flex-1"
+              :loading="loading"
+              :disabled="loading"
+              @click="submit"
+              >登录</el-button
+            >
+            <el-button type="success" @click="register" class="60px"
+              >注册</el-button
+            >
+          </el-form-item>
+          <div class="flex justify-end items-center">
+            <span class="text-gray-400 text-12px">忘记密码？</span>
+            <el-button
+              link
+              type="primary"
+              size="small"
+              class="pl-2px! pr-0!"
+              @click="findPassword"
+              >找回密码</el-button
+            >
+          </div>
+        </el-form>
+      </div>
     </div>
   </WhiteBoard>
 </template>
@@ -154,6 +159,7 @@ const findPassword = () => {
     padding: 40px;
     padding-bottom: 20px;
     background: rgba(255, 255, 255, 0.8);
+    border: 0;
     border-radius: 10px;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
   }

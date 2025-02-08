@@ -92,13 +92,46 @@ const logout = () => {
               <div class="flex flex-col items-stretch">
                 <div class="flex items-center">
                   <el-avatar :size="40" :src="avatar" />
-                  <div class="flex flex-col ml-24px">
+                  <div class="ml-24px">
                     <template v-if="userInfo!.name">
-                      <span class="text-14px mb-8px">{{ userInfo!.name }}</span>
-                      <span class="text-12px">{{ userInfo!.email }}</span>
+                      <div class="flex flex-col">
+                        <div class="flex mb-8px">
+                          <span class="text-14px mr-4px">
+                            {{ userInfo!.name }}
+                          </span>
+                          <el-tag
+                            v-if="userInfo?.type == 1"
+                            size="small"
+                            round
+                            effect="plain"
+                            color="gold"
+                            >系统管理员</el-tag
+                          >
+                          <el-tag
+                            v-if="userInfo?.type == 2"
+                            size="small"
+                            round
+                            effect="plain"
+                            color="green"
+                            >管理员</el-tag
+                          >
+                        </div>
+                        <span class="text-12px">{{ userInfo!.email }}</span>
+                      </div>
                     </template>
                     <template v-else>
-                      <span class="text-14px">{{ userInfo!.email }}</span>
+                      <div class="flex">
+                        <span class="text-14px mr-4px">{{
+                          userInfo!.email
+                        }}</span>
+                        <el-tag
+                          v-if="userInfo?.type == 2"
+                          size="small"
+                          round
+                          effect="plain"
+                          >管理员</el-tag
+                        >
+                      </div>
                     </template>
                   </div>
                 </div>

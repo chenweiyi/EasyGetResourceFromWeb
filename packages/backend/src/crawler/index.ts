@@ -3,6 +3,8 @@ import 'dotenv/config';
 import debugLibrary from 'debug';
 import { type ITaskField } from '../service/task';
 import * as cheerio from 'cheerio';
+import { waitFor } from '../utils/tool';
+import { isNumber } from 'lodash-es';
 
 const debug = debugLibrary('crawler');
 
@@ -10,6 +12,7 @@ export type ICrawlerOptions = {
   url: string;
   useProxy: number;
   fields: ITaskField[];
+  loadDelayTime?: number;
 };
 
 export type IPatchCrawlerOptions = Array<ICrawlerOptions & { id: number }>;
@@ -19,7 +22,7 @@ export type IFlowData = Array<IFlowItem>;
 
 const crawler = async (crawlerOptions: ICrawlerOptions, pre?: ITaskField[]) => {
   debug('crawlerOptions:', crawlerOptions);
-  const { url, useProxy, fields } = crawlerOptions;
+  const { url, useProxy, fields, loadDelayTime } = crawlerOptions;
   const result: ITaskField[] = [];
   const browser = await chromium.launch({
     headless: process.env.HEADLESS === 'true',
@@ -40,34 +43,45 @@ const crawler = async (crawlerOptions: ICrawlerOptions, pre?: ITaskField[]) => {
   } else {
     page = await browser.newPage();
   }
-  await page.goto(url);
-  for (let i = 0; i < fields.length; i++) {
-    const field = fields[i];
-    const { value, access, accessArgs, code } = field;
-    let val: string = '';
-    if (!code) {
-      const locator = await page.locator(value);
-      if (access === 'attr') {
-        if (!accessArgs) {
-          throw new Error('当 access 为 attr 时, accessArgs 不能为空');
-        }
-        val = await locator.getAttribute(accessArgs);
-      } else if (access === 'innerText') {
-        val = await locator.innerText();
-      }
-    } else {
-      const content = await page.content();
-      const $ = cheerio.load(content);
-      const func = new Function('$', 'page', 'pre', code)();
-      val = await func($, page, pre);
+  page.setDefaultTimeout(+process.env.PW_PAGE_TIMEOUT);
+  try {
+    await page.goto(url);
+    await page.waitForLoadState('load');
+    if (loadDelayTime && isNumber(+loadDelayTime)) {
+      // 延迟加载，可以解决SPA页面在load时间完毕后，页面无数据的问题
+      await waitFor(+loadDelayTime);
     }
-    result.push({
-      ...field,
-      value: val,
-    });
+    for (let i = 0; i < fields.length; i++) {
+      const field = fields[i];
+      const { value, access, accessArgs, code } = field;
+      let val: string = '';
+      if (!code) {
+        const locator = await page.locator(value);
+        if (access === 'attr') {
+          if (!accessArgs) {
+            throw new Error('当 access 为 attr 时, accessArgs 不能为空');
+          }
+          val = await locator.getAttribute(accessArgs);
+        } else if (access === 'innerText') {
+          val = await locator.innerText();
+        }
+      } else {
+        const content = await page.content();
+        const $ = cheerio.load(content);
+        const func = new Function('$', 'page', 'pre', code)();
+        val = await func($, page, pre);
+      }
+      result.push({
+        ...field,
+        value: val,
+      });
+    }
+  } catch (error) {
+    throw error;
+  } finally {
+    await browser.close();
   }
 
-  await browser.close();
   return result;
 };
 

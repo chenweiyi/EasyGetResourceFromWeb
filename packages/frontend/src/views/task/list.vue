@@ -23,9 +23,10 @@ const startTask = async (row: ITaskData) => {
   try {
     row.status = 3;
     await execTaskById(row.id);
-    await query();
   } catch (error) {
     console.error(error);
+  } finally {
+    await query();
   }
 };
 

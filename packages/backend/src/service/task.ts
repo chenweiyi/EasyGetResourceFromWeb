@@ -6,6 +6,7 @@ import { crawler, type ICrawlerOptions } from '../crawler/index';
 import { modifyTableField } from '../utils/business';
 import { RedisService } from '../utils/redis';
 import { getServerId } from '../utils/serverId';
+import { MyStateContext } from '../@types/api';
 
 const debug = debugLibrary('task:service');
 
@@ -16,10 +17,15 @@ export type ITaskType = {
   retryNum: number;
   descr?: string;
   fields: Array<ITaskField>;
+  loadDelayTime?: number | string;
 };
 
 export type ITaskWithId = ITaskType & {
   id: number | string;
+};
+
+export type ITaskUpdate = ITaskWithId & {
+  userId: number;
 };
 
 export type ITaskField = {
@@ -45,7 +51,7 @@ const retryCrawler = async (
       currentRetryNum,
     };
   } catch (error) {
-    if (retryNum > 0 && currentRetryNum <= retryNum) {
+    if (retryNum > 0 && currentRetryNum < retryNum) {
       try {
         return await retryCrawler(crawlerOption, retryNum, currentRetryNum + 1);
       } catch (error) {
@@ -57,43 +63,51 @@ const retryCrawler = async (
   }
 };
 
-export const getTaskRecord = async (query: IQueryCommonParams) => {
+export const getTaskRecord = async (
+  ctx: MyStateContext,
+  query: IQueryCommonParams,
+) => {
   const conn = await getConn();
+  const userId = ctx.state.user.id;
   try {
     // 查询总数
     const [totalRows] = await conn.query<RowDataPacket[]>(
       `SELECT COUNT(*) as total 
-     FROM record AS a 
-     LEFT JOIN task AS b 
-     ON a.task_id = b.id AND b.status != 0`,
+  FROM record AS a 
+  LEFT JOIN task AS b 
+  ON a.task_id = b.id AND b.status != 0
+  WHERE a.user_id = ?
+  `,
+      [userId],
     );
 
     const sql = `SELECT 
-      a.id, 
-      a.task_id, 
-      a.start_time, 
-      a.end_time, 
-      a.status, 
-      a.exec_time, 
-      a.exec_num, 
-      a.result, 
-      b.name, 
-      b.url, 
-      b.enable_proxy
-    FROM 
-      record AS a 
-    LEFT JOIN 
-      task AS b 
-    ON 
-      a.task_id = b.id AND b.status != 0
-    ORDER BY 
-      a.end_time DESC
-    LIMIT ${(+query.current - 1) * +query.pageSize}, ${+query.pageSize}
+    a.id, 
+    a.task_id, 
+    a.start_time, 
+    a.end_time, 
+    a.status, 
+    a.exec_time, 
+    a.exec_num, 
+    a.result, 
+    b.name, 
+    b.url, 
+    b.enable_proxy
+  FROM 
+    record AS a
+  LEFT JOIN 
+    task AS b 
+  ON 
+    a.task_id = b.id AND b.status != 0
+  WHERE a.user_id = ?
+  ORDER BY 
+    a.end_time DESC
+  LIMIT ${(+query.current - 1) * +query.pageSize}, ${+query.pageSize}
     `;
 
     debug('sql:', sql);
 
-    const [rows] = await conn.query<RowDataPacket[]>(sql);
+    const [rows] = await conn.query<RowDataPacket[]>(sql, [userId]);
     return {
       list: rows.map(row => ({
         id: row.id,
@@ -117,12 +131,14 @@ export const getTaskRecord = async (query: IQueryCommonParams) => {
   }
 };
 
-export const addNewTask = async (data: ITaskType) => {
+export const addNewTask = async (ctx: MyStateContext, data: ITaskType) => {
   const conn = await getConn();
+  const userId = ctx.state.user.id;
+
   try {
     const [rows] = await conn.query<RowDataPacket[]>(
-      'SELECT * FROM task WHERE name = ? AND status != 0',
-      [data.name],
+      'SELECT * FROM task WHERE name = ? AND status != 0 AND user_id = ?',
+      [data.name, userId],
     );
     if (rows.length > 0) {
       throw new Error('任务已存在');
@@ -138,6 +154,8 @@ export const addNewTask = async (data: ITaskType) => {
       fields: JSON.stringify(data.fields),
       create_time: time,
       update_time: time,
+      user_id: userId,
+      load_delay_time: data.loadDelayTime ? +data.loadDelayTime : null,
     };
 
     debug('d:', d);
@@ -154,19 +172,24 @@ export const addNewTask = async (data: ITaskType) => {
   }
 };
 
-export const queryTaskList = async (query: IQueryCommonParams) => {
+export const queryTaskList = async (
+  ctx: MyStateContext,
+  query: IQueryCommonParams,
+) => {
   const conn = await getConn();
+  const userId = ctx.state.user.id;
   try {
     // 查询总数
     const [totalRows] = await conn.query<RowDataPacket[]>(
-      `SELECT COUNT(*) as total 
-     FROM task AS a 
-     WHERE a.status != 0 AND a.status != 2
+      `SELECT COUNT(*) as total FROM task AS a 
+  WHERE a.status != 0 AND a.user_id = ?
     `,
+      [userId],
     );
 
     const [rows] = await conn.query<RowDataPacket[]>(
-      'SELECT * FROM task WHERE status != 0 ORDER BY create_time DESC',
+      'SELECT * FROM task WHERE status != 0 AND user_id = ? ORDER BY create_time DESC',
+      [userId],
     );
     return {
       list: rows.map(r => ({
@@ -194,12 +217,12 @@ export const queryTaskList = async (query: IQueryCommonParams) => {
   }
 };
 
-export const getTaskById = async (id: number) => {
+export const getTaskById = async (id: number, userId: number) => {
   const conn = await getConn();
   try {
     const [rows] = await conn.query<RowDataPacket[]>(
-      'SELECT * FROM task WHERE id = ?',
-      [id],
+      'SELECT * FROM task WHERE id = ? AND user_id = ?',
+      [id, userId],
     );
     return rows.map(r => ({
       id: r.id,
@@ -214,6 +237,7 @@ export const getTaskById = async (id: number) => {
       updateTime: dayjs(r.update_time).format('YYYY-MM-DD HH:mm:ss'),
       execTotalNum: r.exec_total_num,
       lastExecTime: dayjs(r.last_exec_time).format('YYYY-MM-DD HH:mm:ss'),
+      loadDelayTime: r.load_delay_time,
     }));
   } catch (error) {
     throw error;
@@ -222,7 +246,7 @@ export const getTaskById = async (id: number) => {
   }
 };
 
-export const updateTaskById = async (data: ITaskWithId) => {
+export const updateTaskById = async (data: ITaskUpdate) => {
   const conn = await getConn();
   try {
     const [rows] = await conn.query<RowDataPacket[]>(
@@ -240,13 +264,14 @@ export const updateTaskById = async (data: ITaskWithId) => {
       retry_num: data.retryNum,
       fields: JSON.stringify(data.fields),
       update_time: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+      load_delay_time: data.loadDelayTime ? +data.loadDelayTime : null,
     };
 
     debug('d:', d);
 
     const res = await conn.query<ResultSetHeader>(
-      'UPDATE task SET ? WHERE id = ?',
-      [d, data.id],
+      'UPDATE task SET ? WHERE id = ? AND user_id = ?',
+      [d, data.id, data.userId],
     );
     if (res[0].affectedRows === 0) {
       throw new Error('更新任务失败');
@@ -259,7 +284,7 @@ export const updateTaskById = async (data: ITaskWithId) => {
   }
 };
 
-export const deleteTaskById = async (id: number) => {
+export const deleteTaskById = async (id: number, userId: number) => {
   const conn = await getConn();
   try {
     const [rows] = await conn.query<RowDataPacket[]>(
@@ -269,15 +294,18 @@ export const deleteTaskById = async (id: number) => {
     if (rows[0].count > 0) {
       throw new Error('有监控单依赖该任务，若要删除，请先删除监控单或取消关联');
     }
-    await modifyTableField({
-      id,
-      value: {
-        status: 0,
-        update_time: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-      },
-      table: 'task',
-      conn,
-    });
+    // 软删除，修改status
+    await conn.query<ResultSetHeader>(
+      'UPDATE task SET ? WHERE id = ? AND user_id = ?',
+      [
+        {
+          status: 0,
+          update_time: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+        },
+        id,
+        userId,
+      ],
+    );
   } catch (error) {
     throw error;
   } finally {
@@ -285,7 +313,7 @@ export const deleteTaskById = async (id: number) => {
   }
 };
 
-export const copyTaskById = async (id: number) => {
+export const copyTaskById = async (id: number, userId: number) => {
   const conn = await getConn();
   try {
     const [rows] = await conn.query<RowDataPacket[]>(
@@ -307,6 +335,8 @@ export const copyTaskById = async (id: number) => {
       fields: JSON.stringify(JSON.parse(rows[0].fields)),
       create_time: time,
       update_time: time,
+      user_id: userId,
+      load_delay_time: rows[0].load_delay_time,
     };
 
     debug('d:', d);
@@ -323,29 +353,30 @@ export const copyTaskById = async (id: number) => {
   }
 };
 
-export const execTaskById = async (id: number) => {
+export const execTaskById = async (id: number, userId: number) => {
   const conn = await getConn();
   try {
     const [rows] = await conn.query<RowDataPacket[]>(
       `SELECT 
-        id, 
-        url, 
-        fields, 
-        enable_proxy as useProxy, 
-        retry_num as retryNum,
-        exec_total_num as execTotalNum 
-      FROM 
-        task 
-      WHERE id = ? AND status != 0`,
-      [id],
+    id, 
+    url, 
+    fields, 
+    enable_proxy as useProxy, 
+    retry_num as retryNum,
+    exec_total_num as execTotalNum,
+    load_delay_time as loadDelayTime
+  FROM 
+    task 
+  WHERE id = ? AND status != 0 AND user_id = ?`,
+      [id, userId],
     );
     if (rows.length === 0) {
       throw new Error('任务不存在或已删除');
     }
 
     const [rows2] = await conn.query<RowDataPacket[]>(
-      'SELECT * FROM task WHERE id = ? AND status = 3',
-      [id],
+      'SELECT * FROM task WHERE id = ? AND status = 3 AND user_id = ?',
+      [id, userId],
     );
 
     if (rows2.length === 1) {
@@ -354,22 +385,25 @@ export const execTaskById = async (id: number) => {
 
     const startTime = dayjs();
     // 更新任务状态为正在执行
-    await modifyTableField({
-      id,
-      value: {
-        status: 3,
-        last_exec_time: startTime.format('YYYY-MM-DD HH:mm:ss'),
-      },
-      conn,
-      table: 'task',
-    });
+    await conn.query<ResultSetHeader>(
+      'UPDATE task SET ? WHERE id = ? AND user_id = ?',
+      [
+        {
+          status: 3,
+          last_exec_time: startTime.format('YYYY-MM-DD HH:mm:ss'),
+        },
+        id,
+        userId,
+      ],
+    );
 
     // 添加正在执行的任务到redis中
     RedisService.sAdd(`task-execing:${getServerId()}`, id + '');
 
     // 执行任务
     const task = rows[0];
-    const { url, fields, useProxy, retryNum, execTotalNum } = task;
+    const { url, fields, useProxy, retryNum, execTotalNum, loadDelayTime } =
+      task;
     let result: {
       result: ITaskField[];
       currentRetryNum: number;
@@ -381,6 +415,7 @@ export const execTaskById = async (id: number) => {
           url,
           useProxy,
           fields: JSON.parse(fields),
+          loadDelayTime,
         },
         retryNum,
         0,
@@ -400,6 +435,7 @@ export const execTaskById = async (id: number) => {
       exec_time: endTime.diff(startTime, 's'),
       result: isError ? JSON.stringify({}) : JSON.stringify(result.result),
       exec_num: isError ? retryNum + 1 : result.currentRetryNum + 1,
+      user_id: userId,
     };
 
     debug('d2:', d2);

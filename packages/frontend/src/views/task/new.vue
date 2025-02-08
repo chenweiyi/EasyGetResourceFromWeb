@@ -23,6 +23,7 @@ const form = ref<ITaskType & { execTotalNum?: number }>({
       code: undefined,
     },
   ],
+  loadDelayTime: '',
 });
 
 const rules = ref({
@@ -83,6 +84,7 @@ const submit = async () => {
             fields: form.value.fields,
             descr: form.value.descr,
             retryNum: form.value.retryNum == null ? 2 : +form.value.retryNum,
+            loadDelayTime: form.value.loadDelayTime || undefined,
           });
           ElMessage.success('更新成功');
           emit('updated');
@@ -95,6 +97,7 @@ const submit = async () => {
             fields: form.value.fields,
             descr: form.value.descr,
             retryNum: form.value.retryNum == null ? 2 : +form.value.retryNum,
+            loadDelayTime: form.value.loadDelayTime || undefined,
           });
           ElMessage.success('添加成功');
           router.push({
@@ -210,6 +213,13 @@ watch(
           <el-input
             v-model="form.retryNum"
             placeholder="请输入重试次数, 默认为2"
+            type="number"
+          />
+        </el-form-item>
+        <el-form-item label="延迟加载时间" class="w-400px" prop="loadDelayTime">
+          <el-input
+            v-model="form.loadDelayTime"
+            placeholder="请输入延迟加载时间, 单位毫秒"
             type="number"
           />
         </el-form-item>

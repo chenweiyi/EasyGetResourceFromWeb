@@ -13,3 +13,7 @@ export const genRandomNumber = (length: number) => {
 export const getDirname = () => {
   return dirname(fileURLToPath(import.meta.url));
 };
+
+export const waitFor = (ms: number) => {
+  return new Promise(resolve => setTimeout(resolve, ms));
+};

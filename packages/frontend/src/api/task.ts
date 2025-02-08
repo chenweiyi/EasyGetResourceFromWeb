@@ -7,6 +7,7 @@ export type ITaskType = {
   fields: Array<ITaskField>;
   descr?: string;
   retryNum?: number | string;
+  loadDelayTime?: string;
 };
 
 export type ITaskData = ITaskType & {
@@ -131,7 +132,7 @@ export const getTaskById: (
 export const execTaskById: (
   id: number | string,
   timeout?: number,
-) => Promise<null> = (id, timeout = 30000) => {
+) => Promise<null> = (id, timeout = 60000) => {
   return axios({
     url: `/task/exec/${id}`,
     method: 'post',

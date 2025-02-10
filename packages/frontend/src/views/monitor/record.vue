@@ -63,8 +63,8 @@ watch(() => [pageSize.value, current.value], query);
   <div v-loading="loading">
     <el-table :data="data">
       <el-table-column prop="id" label="Id" width="70" />
-      <el-table-column prop="name" label="名称" />
-      <el-table-column prop="taskIds" label="监控任务" show-overflow-tooltip>
+      <el-table-column prop="name" label="名称" show-overflow-tooltip />
+      <el-table-column prop="taskIds" label="监控任务">
         <template #default="scope">
           <el-tag
             v-for="(item, index) in scope.row.taskNames"
